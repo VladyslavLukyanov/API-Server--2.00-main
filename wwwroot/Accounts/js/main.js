@@ -105,9 +105,6 @@ const setUp = () => {
 };
 
 
-// FUNCTIONS EVENTS
-
-// dom
 $(() => {
     setUp();
 });
