@@ -34,8 +34,10 @@ export default class HttpContext {
             this.req.on('data', chunk => {
                 body += chunk; // body.push(chunk) was a mistake and do not work with big data
             }).on('end', () => {
+
                 if (body.length > 0) {
                     if (this.req.headers['content-type'] == "application/json") {
+
                         try {
                             this.payload = JSON.parse(body);
                         }
@@ -43,6 +45,7 @@ export default class HttpContext {
                             console.log(error);
                             this.payload = null;
                         }
+
                     } else {
                         if (this.req.headers["content-type"] === "application/x-www-form-urlencoded") {
                             try { this.payload = queryString.parse(body.toString()); }
@@ -58,6 +61,7 @@ export default class HttpContext {
                         this.payload = null;
                 }
                 resolve(this.payload);
+                
             });
         })
     }

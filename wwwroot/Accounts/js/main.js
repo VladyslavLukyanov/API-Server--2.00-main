@@ -3,30 +3,29 @@ const renderFromConnection = () =>  {
         <div class="content" style="text-align:center">
             <h3>Connexion</h3>
             <form class="form" id="loginForm">
-            <input type='email'
-            name='Email'
-            class="form-control"
-            required
-            RequireMessage = 'Veuillez entrer votre courriel'
-            InvalidMessage = 'Courriel invalide'
-            placeholder="adresse de courriel"
-            value=''>
-            <span style='color:red'></span>
-            <input type='password'
-            name='Password'
-            placeholder='Mot de passe'
-            class="form-control"
-            required
-            RequireMessage = 'Veuillez entrer votre mot de passe'>
-            <span style='color:red'></span>
-            <input type='submit' name='submit' value="Entrer" class="form-control btn-primary">
+                <input type='email'
+                name='Email'
+                class="form-control"
+                required
+                RequireMessage = 'Veuillez entrer votre courriel'
+                InvalidMessage = 'Courriel invalide'
+                placeholder="adresse de courriel"
+                value=''>
+                <span style='color:red'></span>
+                <input type='password'
+                name='Password'
+                placeholder='Mot de passe'
+                class="form-control"
+                required
+                RequireMessage = 'Veuillez entrer votre mot de passe'>
+                <span style='color:red'></span>
+                <input type='submit' name='submit' value="Entrer" class="form-control btn-primary">
             </form>
             <div class="form">
-            <hr>
-            <button class="form-control btn-info" id="createProfilCmd">Nouveau compte</button>
-        </div>
-    
-    `;
+                <hr>
+                <button class="form-control btn-info" id="createProfilCmd">Nouveau compte</button>
+            </div>
+        </div>`;
 }
 
 
@@ -100,11 +99,22 @@ const renderFormInscription = () => {
     `;
 };
 
+
+function handleConnectionBtn() {
+    $('form').submit((e) => {
+        
+    });
+};
+
 const setUp = () => {
     $("body").append(renderFromConnection());
+    handleConnectionBtn();
+
 };
+
 
 
 $(() => {
     setUp();
+
 });

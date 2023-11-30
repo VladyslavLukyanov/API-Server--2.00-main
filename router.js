@@ -14,6 +14,7 @@ export const API_EndPoint = async function (HttpContext) {
 
                 // instanciate the controller       
                 let controller = new Controller(HttpContext);
+                console.log(controller);
                 switch (HttpContext.req.method) {
                     case 'HEAD':
                         controller.head();
@@ -22,6 +23,7 @@ export const API_EndPoint = async function (HttpContext) {
                         controller.get(HttpContext.path.id);
                         return true;
                     case 'POST':
+                        console.log("post");
                         if (HttpContext.payload)
                             controller.post(HttpContext.payload);
                         else
@@ -88,11 +90,14 @@ export const Registered_EndPoint = async function (HttpContext) {
 }
 
 export const TOKEN_EndPoint = function (HttpContext) {
+    console.log('token end points')
     if (HttpContext.req.url == '/token' && HttpContext.req.method == "POST") {
         try {
             let accountsController = new AccountsController(HttpContext);
-            if (HttpContext.payload)
+            if (HttpContext.payload) {
+                console.log('if')
                 accountsController.login(HttpContext.payload);
+            }
             else
                 HttpContext.response.badRequest();
             return true;
