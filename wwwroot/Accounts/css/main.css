@@ -1,0 +1,8 @@
+.content {
+    max-width: 400px !important;
+    margin: auto;
+}
+
+input {
+    margin-bottom: 5px;
+}
