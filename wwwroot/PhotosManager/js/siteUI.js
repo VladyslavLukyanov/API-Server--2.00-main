@@ -104,7 +104,7 @@ function renderAbout() {
 }
 
 
-const renderFromConnection = (user) => {
+const renderFormConnection = (user) => {
     $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
@@ -223,7 +223,7 @@ const renderFormInscription = () => {
 
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
-        $("#content").html(renderFromConnection('testset'));
+        $("#content").html(renderFormConnection('testset'));
     });
     
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
@@ -258,7 +258,7 @@ async function createProfil(profil) {
     // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
-        renderFromConnection(`Votre compte a été créé.`);
+        renderFormConnection(`Votre compte a été créé.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
@@ -268,15 +268,7 @@ async function createProfil(profil) {
     // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
-const setUp = () => {
-    if (API.retrieveLoggedUser()) {
 
-    }
-    else {
-        $("#header").html(updateHeader('Connexion', 'login'));
-        $("#content").html(renderFromConnection('setup'));
-
-    }
 function serverError () {
     console.log('server error');
 
@@ -351,6 +343,16 @@ const setUp = () => {
     });
 };
 
-// $(() => {
-//     setUp();
-// });
+$(()=>{
+    setUp();
+})
+// const setUp = () => {
+//     if (API.retrieveLoggedUser()) {
+
+//     }
+//     else {
+//         $("#header").html(updateHeader('Connexion', 'login'));
+//         $("#content").html(renderFromConnection('setup'));
+
+//     }
+// }
