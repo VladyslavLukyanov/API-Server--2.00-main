@@ -79,6 +79,16 @@ class API {
             });
         });
     }
+
+    // static getUserByEmail (email) {
+    //     API.initHttpState();
+    //     return new Promise(resolve => {
+    //         $.ajax({
+    //             url
+    //         });
+    //     });
+    // }
+
     static login(Email, Password) {
         API.initHttpState();
         return new Promise(resolve => {
