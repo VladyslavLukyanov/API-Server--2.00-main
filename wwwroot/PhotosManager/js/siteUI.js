@@ -46,7 +46,6 @@ function renderAbout() {
 }
 
 const renderFormConnection = (user=null) =>  {
-    console.log(user);
     return `
         <div class="content" style="text-align:center">
             <h3></h3>
@@ -182,8 +181,7 @@ function logedUser() {
 function handleLoginError (errorMsg) {
 
     eraseContent();
-    setUp(); // ratachement des evenements
-
+    setUp();
     if(errorMsg.includes("pass")) {
         $('.wrong-pass').text("Mot de passe incorret");
     } else if (errorMsg.includes("email")){
@@ -198,8 +196,8 @@ function handleLoginError (errorMsg) {
 const handlelogin =  () => {
     
     $('form').off().submit(async (e) => {
-        user = logedUser();
         e.preventDefault();
+        user = logedUser();
         showWaitingGif();
         
         const token = await API.login(user.email, user.password);
@@ -207,6 +205,7 @@ const handlelogin =  () => {
             eraseContent();
             $("#content").append(token.Id);
         } else { 
+            console.log('ss');
             handleLoginError(API.currentHttpError);
             handlelogin(); 
         }
