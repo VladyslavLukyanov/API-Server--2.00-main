@@ -14,8 +14,40 @@ function saveContentScrollPosition() {
 function restoreContentScrollPosition() {
     $("#content")[0].scrollTop = contentScrollPosition;
 }
-function updateHeader() {
-    //todo
+function updateHeader(loggedUser = null) {    
+    if(loggedUser){
+        return headerLogged(loggedUser);
+    }
+    return headerNotLogged();
+}
+function headerNotLogged(){
+    return `
+    <span title="Liste des photos" id="listPhotosCmd">
+        <img src="images/PhotoCloudLogo.png" class="appLogo">
+    </span>
+    <span class="viewTitle">Connexion
+    </span>
+`;
+}
+function headerLogged(loggedUser){
+    return `
+        <span title="Liste des photos" id="listPhotosCmd">
+        <img src="images/PhotoCloudLogo.png" class="appLogo">
+        </span>
+        <span class="viewTitle">Liste des photos
+        <div class="cmdIcon fa fa-plus" id="newPhotoCmd" title="Ajouter une photo"></div>
+        </span>
+        <div class="headerMenusContainer">
+        <span>&nbsp;</span> <!--filler-->
+        <i title="Modifier votre profil">
+        <div class="UserAvatarSmall" userid="${loggedUser.Id}" id="editProfilCmd"
+        style="background-image:url('${loggedUser.Avatar}')"
+        title="Nicolas Chourot"></div>
+        </i>
+        <div class="dropdown ms-auto dropdownLayout">
+        <!-- Articles de menu -->
+        </div>
+    `;
 }
 function renderAbout() {
     timeout();
@@ -43,9 +75,10 @@ function renderAbout() {
 }
 
 const renderFromConnection = () =>  {
+    let loginMessage = 'Connexion';
     return `
         <div class="content" style="text-align:center">
-            <h3>Connexion</h3>
+            <h3>${loginMessage}</h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -76,6 +109,7 @@ const renderFromConnection = () =>  {
 
 const renderFormInscription = () => {
     return `
+
         <script> initImageUploaders(); </script>
         <form class="form" id="createProfilForm"'>
         <fieldset>
@@ -147,10 +181,27 @@ const renderFormInscription = () => {
 };
 
 const setUp = () => {
-    $("#content").append(renderFromConnection());
-    $('#createProfilCmd').on("click",()=>{
-        $("body").html(renderFormInscription);
-    })
+    if(API.retrieveLoggedUser())
+    {
+
+    }
+    else{
+        $("#header").html(updateHeader);
+        $("#content").append(renderFromConnection());
+        
+        $('#createProfilCmd').on("click",()=>{
+            
+            $("#content").html(renderFormInscription);
+            $(".viewTitle").text('Inscription');
+            
+            $(".cancel").click(()=>{
+                $("#header").html(updateHeader);
+                $("#content").html(renderFromConnection());
+            });
+            
+        });
+
+    }
 };
 
 $(() => {
