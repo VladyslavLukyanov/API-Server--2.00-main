@@ -252,7 +252,8 @@ async function createProfil(profil) {
     // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
-        renderFromConnection(`Votre compte a été créé.`);
+        // $("#content").html(`bienvenue ${profil.Name}`);
+        renderFormInscription(`Votre compte vient d'être crée.`)
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
