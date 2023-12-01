@@ -2,8 +2,6 @@ let contentScrollPosition = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Views rendering
 
-// let logUser = null;
-
 function showWaitingGif() {
     eraseContent();
     $("#content").append($("<div class='waitingGifcontainer'><img class='waitingGif' src='images/Loading_icon.gif' /></div>'"));
@@ -81,7 +79,6 @@ function headerLogged() {
 function renderAbout() {
     timeout();
     saveContentScrollPosition();
-    //eraseContent();
     updateHeader("À propos...", "about");
 
     $("#content").html(
@@ -142,7 +139,7 @@ const renderFormConnection = (user=null,title) => {
     handleloginEvents();
 
     $('#createProfilCmd').on("click", () => {
-        $("#content").html(renderFormInscription("test"));
+        $("#content").html(renderFormInscription);
         $(".viewTitle").text('Inscription');
     });
 }
@@ -258,8 +255,8 @@ function getFormData($form) {
 }
 
 async function createProfil(profil) {
+
     profil = await API.register(profil); 
-    // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
         renderFormConnection(profil, `Votre compte a été créé.`);
@@ -330,5 +327,5 @@ const handleloginEvents =  () => {
 
 $(()=>{
     renderFormConnection(null, 'test')
-})
+});
 
