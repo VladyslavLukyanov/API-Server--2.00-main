@@ -2,7 +2,7 @@ let contentScrollPosition = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Views rendering
 
-let user = null;
+// let logUser = null;
 
 function showWaitingGif() {
     eraseContent();
@@ -20,7 +20,7 @@ function restoreContentScrollPosition() {
 function updateHeader(title, command) {
     switch (command) {
         case 'createProfil':
-            $('.viewTitle').text(title);
+            $('.viewTitlelo').text(title);
             headerAnonymous();
             break;
         case 'login':
@@ -104,11 +104,12 @@ function renderAbout() {
 }
 
 
-const renderFormConnection = (user) => {
+const renderFormConnection = (user=null,title) => {
+
     $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
-            <h3></h3>
+            <h3>${title}</h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -118,7 +119,7 @@ const renderFormConnection = (user) => {
                 RequireMessage = 'Veuillez entrer votre courriel'
                 InvalidMessage = 'Courriel invalide'
                 placeholder="adresse de courriel"
-                value='${user ? user.email : ""}'>
+                value='${user ? user.Email : ""}'>
                 <span class='wrong-email' style='color:red'></span>
                 <input type='password'
                 name='Password'
@@ -137,8 +138,11 @@ const renderFormConnection = (user) => {
         </div>
     
     `);
+
+    handleloginEvents();
+
     $('#createProfilCmd').on("click", () => {
-        $("#content").html(renderFormInscription);
+        $("#content").html(renderFormInscription("test"));
         $(".viewTitle").text('Inscription');
     });
 }
@@ -223,7 +227,7 @@ const renderFormInscription = () => {
 
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
-        $("#content").html(renderFormConnection('testset'));
+        $("#content").html(renderFormConnection(null, 'testset'));
     });
     
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
@@ -258,7 +262,7 @@ async function createProfil(profil) {
     // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
-        renderFormConnection(`Votre compte a été créé.`);
+        renderFormConnection(profil, `Votre compte a été créé.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
@@ -285,21 +289,14 @@ function retry() {
     $("#tryAgain").click(() => {
         console.log('retry...');
         eraseContent();
-        setUp();
+        renderFormConnection(null, "retry");
     });
 }
 
-function logedUser() {
-    const user = {};
-    user.email = $('#Email').val();
-    user.password = $("#Password").val();
-    return user;
-}
-
-function handleLoginError (errorMsg) {
-
+function handleLoginError (user, errorMsg) {
     eraseContent();
-    setUp();
+    renderFormConnection(user);
+
     if(errorMsg.includes("pass")) {
         $('.wrong-pass').text("Mot de passe incorret");
     } else if (errorMsg.includes("email")){
@@ -311,48 +308,27 @@ function handleLoginError (errorMsg) {
     }
 }
 
-const handlelogin =  () => {
+const handleloginEvents =  () => {
     
     $('form').off().submit(async (e) => {
         e.preventDefault();
-        user = logedUser();
-        showWaitingGif();
+        let user = getFormData($("#loginForm"));
         
-        const token = await API.login(user.email, user.password);
+        showWaitingGif();
+        const token = await API.login(user.Email, user.Password);
+        
         if(token) {
             eraseContent();
             $("#content").append(token.Id);
         } else { 
-            console.log('ss');
-            handleLoginError(API.currentHttpError);
-            handlelogin(); 
+            handleLoginError(user, API.currentHttpError);
+            handleloginEvents(); 
         }
     });
 }
 
-const setUp = () => {
-    
-    console.log('setting up...');
-
-    $("#content").append(renderFormConnection(user));
-    handlelogin();
-
-
-    $('#createProfilCmd').on("click", () => {
-        $("#content").html(renderFormInscription);
-    });
-};
 
 $(()=>{
-    setUp();
+    renderFormConnection(null, 'test')
 })
-// const setUp = () => {
-//     if (API.retrieveLoggedUser()) {
 
-//     }
-//     else {
-//         $("#header").html(updateHeader('Connexion', 'login'));
-//         $("#content").html(renderFromConnection('setup'));
-
-//     }
-// }
