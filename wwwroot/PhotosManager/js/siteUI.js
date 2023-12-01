@@ -224,12 +224,16 @@ const renderFormInscription = () => {
     // call back la soumission du formulaire
     $('#createProfilForm').on("submit", function (event) {
         event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
+
         let profil = getFormData($('#createProfilForm'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
+        
         showWaitingGif(); // afficher GIF d’attente
-        // console.log(profil);
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // va voir createProfil
         createProfil(profil); // commander la création au service API
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     });
 
 };
@@ -243,11 +247,19 @@ function getFormData($form) {
     return jsonObject;
 }
 
-function createProfil(profil){
-    API.register(profil);
+async function createProfil(profil) {
+    profil = await API.register(profil); 
+    // on attend que l'usager se cree en bloquant avec await et on le recupere
+
+    if(profil) {
+        $("#content").html(`bienvenue ${profil.Name}`);
+        console.log(profil);
+    } else {
+        console.log(API.currentHttpError);
+    }  
     // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
     // renderFromConnection(`Votre compte a été créé. 
-    //     Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
+    // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
 const setUp = () => {
