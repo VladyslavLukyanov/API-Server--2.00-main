@@ -14,22 +14,48 @@ function saveContentScrollPosition() {
 function restoreContentScrollPosition() {
     $("#content")[0].scrollTop = contentScrollPosition;
 }
-function updateHeader(loggedUser = null) {    
-    if(loggedUser){
-        return headerLogged(loggedUser);
+function updateHeader(title, command) {
+    switch (command) {
+        case 'createProfil':
+            $('.viewTitle').text(title);
+            headerAnonymous();
+            break;
+        case 'login':
+            $('.viewTitle').text(title);
+            headerAnonymous();
+            break;
+        case 'about':
+            $('.viewTitle').text(title);
+            break;
+        default:
+            break;
     }
-    return headerNotLogged();
 }
-function headerNotLogged(){
-    return `
+function headerAnonymous() {
+    $("#header").html(`
     <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
     </span>
     <span class="viewTitle">Connexion
     </span>
-`;
+    <div class="dropdown ms-auto dropdownLayout">
+        <div data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="cmdIcon fa fa-ellipsis-vertical"></i>
+        </div>
+        <div class="dropdown-menu noselect" id="DDMenu">
+            <div class="dropdown-item menuItemLayout" id="signInCmd">
+                <i class="menuIcon fa fa-sign-in mx-2"></i> Connexion
+            </div>
+            <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
+            </div>
+        </div>
+    </div>`);
+    $('#aboutCmd').click(() => { renderAbout(); })
+    $('#signInCmd').click(() => { renderFromConnection(); })
 }
-function headerLogged(loggedUser){
+function headerLogged() {
+    let loggedUser = API.retrieveLoggedUser();
     return `
         <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
@@ -52,11 +78,11 @@ function headerLogged(loggedUser){
 function renderAbout() {
     timeout();
     saveContentScrollPosition();
-    eraseContent();
-    UpdateHeader("À propos...", "about");
+    //eraseContent();
+    updateHeader("À propos...", "about");
 
-    $("#content").append(
-        $(`
+    $("#content").html(
+        `
             <div class="aboutContainer">
                 <h2>Gestionnaire de photos</h2>
                 <hr>
@@ -71,14 +97,14 @@ function renderAbout() {
                     Collège Lionel-Groulx, automne 2023
                 </p>
             </div>
-        `))
+        `);
 }
 
-const renderFromConnection = () =>  {
-    let loginMessage = 'Connexion';
-    return `
+const renderFromConnection = (loginMessage = null) => {
+    $(".viewTitle").text('Connexion');
+    $("#content").html(`
         <div class="content" style="text-align:center">
-            <h3>${loginMessage}</h3>
+            <h3>${loginMessage ? loginMessage : ''}</h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -104,102 +130,133 @@ const renderFromConnection = () =>  {
             </div>
         </div>
     
-    `;
+    `);
+    $('#createProfilCmd').on("click", () => {
+        $("#content").html(renderFormInscription);
+        $(".viewTitle").text('Inscription');
+    });
 }
 
 const renderFormInscription = () => {
-    return `
-
-        <script> initImageUploaders(); </script>
-        <form class="form" id="createProfilForm"'>
-        <fieldset>
-        <legend>Adresse ce courriel</legend>
-        <input type="email"
-        class="form-control Email"
-        name="Email"
-        id="Email"
-        placeholder="Courriel"
-        required
-        RequireMessage = 'Veuillez entrer votre courriel'
-        InvalidMessage = 'Courriel invalide'
-        CustomErrorMessage ="Ce courriel est déjà utilisé"/>
-        <input class="form-control MatchedInput"
-        type="text"
-        matchedInputId="Email"
-        name="matchedEmail"
-        id="matchedEmail"
-        placeholder="Vérification"
-        required
-        RequireMessage = 'Veuillez entrez de nouveau votre courriel'
-        InvalidMessage="Les courriels ne correspondent pas" />
-        </fieldset>
-        <fieldset>
-        <legend>Mot de passe</legend>
-        <input type="password"
-        class="form-control"
-        name="Password"
-        id="Password"
-        placeholder="Mot de passe"
-        required
-        RequireMessage = 'Veuillez entrer un mot de passe'
-        InvalidMessage = 'Mot de passe trop court'/>
-        <input class="form-control MatchedInput"
-        type="password"
-        matchedInputId="Password"
-        name="matchedPassword"
-        id="matchedPassword"
-        placeholder="Vérification" required
-        InvalidMessage="Ne correspond pas au mot de passe" />
-        </fieldset>
-        <fieldset>
-        <legend>Nom</legend>
-        <input type="text"
-        class="form-control Alpha"
-        name="Name"
-        id="Name"
-        placeholder="Nom"
-        required
-        RequireMessage = 'Veuillez entrer votre nom'
-        InvalidMessage = 'Nom invalide'/>
-        </fieldset>
-        <fieldset>
-        <legend>Avatar</legend>
-        <div class='imageUploader'
-        newImage='true'
-        controlId='Avatar'
-        imageSrc='../images/no-avatar.png'
-        waitingImage="../images/Loading_icon.gif">
-        </div>
-        </fieldset>
-        <input type='submit' name='submit' id='saveUserCmd' value="Enregistrer" class="form-control btn-primary">
+    noTimeout(); // ne pas limiter le temps d’inactivité
+    //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
+    updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
+    $("#newPhotoCmd").hide(); // camouffler l’icone de commande d’ajout de photo
+    $("#content").html(`
+        <form class="form" id="createProfilForm" method=POST>
+            <fieldset>
+            <legend>Adresse ce courriel</legend>
+            <input type="email"
+            class="form-control Email"
+            name="Email"
+            id="Email"
+            placeholder="Courriel"
+            required
+            RequireMessage = 'Veuillez entrer votre courriel'
+            InvalidMessage = 'Courriel invalide'
+            CustomErrorMessage ="Ce courriel est déjà utilisé"/>
+            <input class="form-control MatchedInput"
+            type="text"
+            matchedInputId="Email"
+            name="matchedEmail"
+            id="matchedEmail"
+            placeholder="Vérification"
+            required
+            RequireMessage = 'Veuillez entrez de nouveau votre courriel'
+            InvalidMessage="Les courriels ne correspondent pas" />
+            </fieldset>
+            <fieldset>
+            <legend>Mot de passe</legend>
+            <input type="password"
+            class="form-control"
+            name="Password"
+            id="Password"
+            placeholder="Mot de passe"
+            required
+            RequireMessage = 'Veuillez entrer un mot de passe'
+            InvalidMessage = 'Mot de passe trop court'/>
+            <input class="form-control MatchedInput"
+            type="password"
+            matchedInputId="Password"
+            name="matchedPassword"
+            id="matchedPassword"
+            placeholder="Vérification" required
+            InvalidMessage="Ne correspond pas au mot de passe" />
+            </fieldset>
+            <fieldset>
+            <legend>Nom</legend>
+            <input type="text"
+            class="form-control Alpha"
+            name="Name"
+            id="Name"
+            placeholder="Nom"
+            required
+            RequireMessage = 'Veuillez entrer votre nom'
+            InvalidMessage = 'Nom invalide'/>
+            </fieldset>
+            <fieldset>
+            <legend>Avatar</legend>
+            <div class='imageUploader'
+            newImage='true'
+            controlId='Avatar'
+            imageSrc='images/no-avatar.png'
+            waitingImage="images/Loading_icon.gif">
+            </div>
+            </fieldset>
+            <input type='submit' name='submit' id='saveUserCmd' value="Enregistrer" class="form-control btn-primary">
         </form>
         </div>
         <div class="cancel">
             <button class="form-control btn-secondary" id="abortCmd">Annuler</button>
-        </div>
-    `;
+        </div>`
+    );
+    
+    
+    initFormValidation();
+    initImageUploaders();
+
+    $(".cancel").click(() => {
+        $("#header").html(updateHeader);
+        $("#content").html(renderFromConnection('testset'));
+    });
+    
+    addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
+    // call back la soumission du formulaire
+    $('#createProfilForm').on("submit", function (event) {
+        event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
+        let profil = getFormData($('#createProfilForm'));
+        delete profil.matchedPassword;
+        delete profil.matchedEmail;
+        showWaitingGif(); // afficher GIF d’attente
+        // console.log(profil);
+        createProfil(profil); // commander la création au service API
+    });
+
 };
 
+function getFormData($form) {
+    const removeTag = new RegExp("(<[a-zA-Z0-9]+>)|(</[a-zA-Z0-9]+>)", "g");
+    var jsonObject = {};
+    $.each($form.serializeArray(), (index, control) => {
+        jsonObject[control.name] = control.value.replace(removeTag, "");
+    });
+    return jsonObject;
+}
+
+function createProfil(profil){
+    API.register(profil);
+    // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
+    // renderFromConnection(`Votre compte a été créé. 
+    //     Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
+}
+
 const setUp = () => {
-    if(API.retrieveLoggedUser())
-    {
+    if (API.retrieveLoggedUser()) {
 
     }
-    else{
-        $("#header").html(updateHeader);
-        $("#content").append(renderFromConnection());
-        
-        $('#createProfilCmd').on("click",()=>{
-            
-            $("#content").html(renderFormInscription);
-            $(".viewTitle").text('Inscription');
-            
-            $(".cancel").click(()=>{
-                $("#header").html(updateHeader);
-                $("#content").html(renderFromConnection());
-            });
-            
-        });
+    else {
+        $("#header").html(updateHeader('Connexion', 'login'));
+        $("#content").html(renderFromConnection('setup'));
 
     }
 };

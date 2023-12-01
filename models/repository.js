@@ -60,7 +60,7 @@ export default class Repository {
       write() {
         this.newETag();
         CachedRequests.clear(this.objectsName);
-        fs.writeFileSync(this.objectsFile, JSON.stringify(this.objectsList));
+        fs.writeFileSync(this.objectsFile, JSON.stringify(this.objectsList)); // c'est ici que quand on sinscrit ca refresh la page.... why
         if (this.cached) {
           RepositoryCachesManager.add(this.objectsName, this.objectsList);
         }
