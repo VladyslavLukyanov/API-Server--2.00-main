@@ -10,7 +10,6 @@ export default class AccountsController extends Controller {
     constructor(HttpContext) {
         super(HttpContext, new Repository(new UserModel()), Authorizations.admin());
     }
-    
     index(id) {
         if (id != undefined) {
             if (Authorizations.readGranted(this.HttpContext, Authorizations.admin()))
@@ -28,7 +27,6 @@ export default class AccountsController extends Controller {
     // POST: /token body payload[{"Email": "...", "Password": "..."}]
     login(loginInfo) {
         if (loginInfo) {
-            console.log('login info')
             if (this.repository != null) {
                 let user = this.repository.findByField("Email", loginInfo.Email);
                 if (user != null) {
@@ -55,7 +53,6 @@ export default class AccountsController extends Controller {
             this.HttpContext.response.badRequest("UserId is not specified.")
         }
     }
-
     sendVerificationEmail(user) {
         let html = `
                 Bonjour ${user.Name}, <br /> <br />
@@ -66,7 +63,6 @@ export default class AccountsController extends Controller {
         const gmail = new Gmail();
         gmail.send(user.Email, 'Vérification de courriel...', html);
     }
-
     sendConfirmedEmail(user) {
         let html = `
                 Bonjour ${user.Name}, <br /> <br />
@@ -75,7 +71,6 @@ export default class AccountsController extends Controller {
         const gmail = new Gmail();
         gmail.send(user.Email, 'Courriel confirmé...', html);
     }
-
     //GET : /accounts/verify?id=...&code=.....
     verify() {
         if (this.repository != null) {
@@ -114,7 +109,6 @@ export default class AccountsController extends Controller {
         } else
             this.HttpContext.response.updated(false);
     }
-
     // POST: account/register body payload[{"Id": 0, "Name": "...", "Email": "...", "Password": "..."}]
     register(user) {
         if (this.repository != null) {
@@ -171,7 +165,10 @@ export default class AccountsController extends Controller {
     }
     // GET:account/remove/id
     remove(id) { // warning! this is not an API endpoint
-        if (Authorizations.writeGranted(this.HttpContext, Authorizations.user()))
+        if (Authorizations.writeGranted(this.HttpContext, Authorizations.user())) {
+            this.authorizations = Authorizations.user();
             super.remove(id);
+            this.authorizations = previousAuthorization;
+        }
     }
 }

@@ -60,7 +60,7 @@ export default class Repository {
       write() {
         this.newETag();
         CachedRequests.clear(this.objectsName);
-        fs.writeFileSync(this.objectsFile, JSON.stringify(this.objectsList)); // c'est ici que quand on sinscrit ca refresh la page.... why
+        fs.writeFileSync(this.objectsFile, JSON.stringify(this.objectsList));
         if (this.cached) {
           RepositoryCachesManager.add(this.objectsName, this.objectsList);
         }
@@ -151,6 +151,20 @@ export default class Repository {
             utilities.deleteByIndex(this.objects(), indexToDelete);
             this.write();
         }
+    }
+    keepByFilter(filterFunc) {
+        let objectsList = this.objects();
+        if (objectsList) {
+            this.objectsList = objectsList.filter(filterFunc);
+            this.write();
+        }
+    }
+    findByFilter(filterFunc) {
+        let objectsList = this.objects();
+        if (objectsList) {
+            return objectsList.filter(filterFunc);
+        }
+        return null;
     }
     findByField(fieldName, value, excludedId = 0) {
         if (fieldName) {

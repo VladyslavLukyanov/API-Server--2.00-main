@@ -242,7 +242,7 @@ const renderFormInscription = () => {
         showWaitingGif(); // afficher GIF d’attente
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // va voir createProfil
-        createProfil(profil); // commander la création au service API
+        createProfil(profil,event); // commander la création au service API
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     });
 
@@ -257,8 +257,9 @@ function getFormData($form) {
     return jsonObject;
 }
 
-async function createProfil(profil) {
-    profil = await API.register(profil); 
+async function createProfil(profile,event) {
+    event.preventDefault();
+    let profil = await API.register(profile); 
     // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
@@ -329,6 +330,6 @@ const handleloginEvents =  () => {
 
 
 $(()=>{
-    renderFormConnection(null, 'test')
+    renderFormConnection(null, 'test');
 })
 
