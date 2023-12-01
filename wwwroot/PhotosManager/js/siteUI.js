@@ -252,13 +252,13 @@ async function createProfil(profil) {
     // on attend que l'usager se cree en bloquant avec await et on le recupere
 
     if(profil) {
-        $("#content").html(`bienvenue ${profil.Name}`);
+        renderFromConnection(`Votre compte a été créé.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
     }  
     // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
-    // renderFromConnection(`Votre compte a été créé. 
+    // renderFromConnection(`Votre compte a été créé.`) 
     // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
