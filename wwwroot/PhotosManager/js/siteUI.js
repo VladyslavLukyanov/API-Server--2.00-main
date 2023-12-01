@@ -1,6 +1,9 @@
 let contentScrollPosition = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Views rendering
+
+let user = null;
+
 function showWaitingGif() {
     eraseContent();
     $("#content").append($("<div class='waitingGifcontainer'><img class='waitingGif' src='images/Loading_icon.gif' /></div>'"));
@@ -42,27 +45,30 @@ function renderAbout() {
         `))
 }
 
-const renderFromConnection = () =>  {
+const renderFormConnection = (user=null) =>  {
+    console.log(user);
     return `
         <div class="content" style="text-align:center">
-            <h3>Connexion</h3>
+            <h3></h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
                 class="form-control"
+                id="Email"
                 required
                 RequireMessage = 'Veuillez entrer votre courriel'
                 InvalidMessage = 'Courriel invalide'
                 placeholder="adresse de courriel"
-                value=''>
-                <span style='color:red'></span>
+                value='${user ? user.email : ""}'>
+                <span class='wrong-email' style='color:red'></span>
                 <input type='password'
                 name='Password'
+                id="Password"
                 placeholder='Mot de passe'
                 class="form-control"
                 required
                 RequireMessage = 'Veuillez entrer votre mot de passe'>
-                <span style='color:red'></span>
+                <span class='wrong-pass' style='color:red'></span>
                 <input type='submit' name='submit' value="Entrer" class="form-control btn-primary">
             </form>
             <div class="form">
@@ -146,11 +152,78 @@ const renderFormInscription = () => {
     `;
 };
 
+function serverError () {
+    console.log('server error');
+
+    return `
+        <div class="form">
+            <b style='color:red; text-align:center;'>Le serveur ne répond pas</b>
+            <hr>
+            <button type='button' class="form-control btn-primary" id="tryAgain">Réessayer</button>
+        </div>
+    `;
+}
+
+function retry() {
+    $("#tryAgain").click(() => {
+        console.log('retry...');
+        eraseContent();
+        setUp();
+    });
+}
+
+function logedUser() {
+    const user = {};
+    user.email = $('#Email').val();
+    user.password = $("#Password").val();
+    return user;
+}
+
+function handleLoginError (errorMsg) {
+
+    eraseContent();
+    setUp(); // ratachement des evenements
+
+    if(errorMsg.includes("pass")) {
+        $('.wrong-pass').text("Mot de passe incorret");
+    } else if (errorMsg.includes("email")){
+        $('.wrong-email').text("Courriel introuvable");
+    } else {
+        $('.form').empty();
+        $("#content").append(serverError());
+        retry();
+    }
+}
+
+const handlelogin =  () => {
+    
+    $('form').off().submit(async (e) => {
+        user = logedUser();
+        e.preventDefault();
+        showWaitingGif();
+        
+        const token = await API.login(user.email, user.password);
+        if(token) {
+            eraseContent();
+            $("#content").append(token.Id);
+        } else { 
+            handleLoginError(API.currentHttpError);
+            handlelogin(); 
+        }
+    });
+}
+
 const setUp = () => {
-    $("#content").append(renderFromConnection());
-    $('#createProfilCmd').on("click",()=>{
-        $("body").html(renderFormInscription);
-    })
+    
+    console.log('setting up...');
+
+    $("#content").append(renderFormConnection(user));
+    handlelogin();
+
+
+    $('#createProfilCmd').on("click", () => {
+        $("#content").html(renderFormInscription);
+    });
 };
 
 $(() => {
