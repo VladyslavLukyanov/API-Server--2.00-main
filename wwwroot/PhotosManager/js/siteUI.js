@@ -29,6 +29,12 @@ function updateHeader(title, command) {
         case 'about':
             $('.viewTitle').text(title);
             break;
+        case 'loggedAddPhoto': // celui la ne retire pas le petit -> (+) pour ajouter photo a partir de header
+            headerLogged();
+            break;
+        case 'logged':
+            headerLogged();
+            $('.viewTitle').text(title);
         default:
             break;
     }
@@ -59,13 +65,13 @@ function headerAnonymous() {
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
     let isAdmin = loggedUser.Authorizations.readAccess === 2 && loggedUser.Authorizations.writeAccess === 2;
-    
-    return `
+
+    $('#header').html( `
         <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
         </span>
         <span class="viewTitle">Liste des photos
-        <div class="cmdIcon fa fa-plus" id="newPhotoCmd" title="Ajouter une photo"></div>
+            <div class="cmdIcon fa fa-plus" id="newPhotoCmd" title="Ajouter une photo"></div>
         </span>
         <div class="headerMenusContainer">
         <span>&nbsp;</span> <!--filler-->
@@ -82,32 +88,46 @@ function headerLogged() {
                 <div class="dropdown-item menuItemLayout" userId='${loggedUser.Id}' id="signOutCmd">
                     <i class="menuIcon fa fa-sign-out"></i> Deconnexion
                 </div>
-                <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                <div class="dropdown-item menuItemLayout" id="editProfilCmd2">
                     <i class="menuIcon fas fa-edit"></i> Modifiez votre profil
                 </div>
 
-                ${
-                    isAdmin ? 
-                    `<hr>
+                ${isAdmin ?
+            `<hr>
                     <div class="dropdown-item menuItemLayout" id="aboutCmd">
                         <i class="menuIcon fas fa-user-cog"></i> Gestion des usagers
                     </div>`
-                    : ""
-                }
+            : ""
+        }
                 
             </div>
         </div>
-    `;
+    `);
+
+    // on profil photo click
+    $('#editProfilCmd, #editProfilCmd2').click(() => {
+        renderEditProfil(API.retrieveLoggedUser());
+    });
+
+    $('#signOutCmd').click(async (e) => {
+        showWaitingGif();
+        if (await API.logout()) {
+            console.log('deconnexion reussie');
+            renderFormConnection(null);
+        }
+    });
+
 }
 
 function connectedUserEvents() {
     $('#signOutCmd').click(async (e) => {
         showWaitingGif();
-        if( await API.logout() ) {
+        if (await API.logout()) {
             console.log('deconnexion reussie');
             renderFormConnection(null);
         }
     });
+    
 }
 
 function renderAbout() {
@@ -135,7 +155,40 @@ function renderAbout() {
 }
 
 
-const renderFormConnection = (user=null,title='') => {
+const renderEditProfil = (user) => {
+    //let isAdmin = user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2;
+    updateHeader('Profil','logged');
+    renderProfilForm(user);
+    
+    $('.cancel').after(`
+        <div class="cancel">
+        <hr>
+            <button class="form-control btn-warning" id="deleteAccountCmd">Effacer le compte</button>
+        </div>
+    `);
+    $(".cancel").click(() => {
+        updateHeader('Listes des photos','loggedAddPhoto');
+        renderPhotoIndex();
+    });
+
+    addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser'); // trouver une facon de ne pas check email presentement utilisé par user
+    // call back la soumission du formulaire
+    $('#editProfilForm').on("submit", function (event) {
+        event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
+
+        let profil = getFormData($('#createProfilForm'));
+        delete profil.matchedPassword;
+        delete profil.matchedEmail;
+
+        showWaitingGif(); // afficher GIF d’attente
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // va voir createProfil
+        modifyProfil(profil); // commander la création au service API
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    });
+}
+
+const renderFormConnection = (user = null, title = '') => {
     updateHeader("Connexion", 'login');
     // $(".viewTitle").text('Connexion');
     $("#content").html(`
@@ -178,13 +231,11 @@ const renderFormConnection = (user=null,title='') => {
     });
 }
 
-const renderFormInscription = () => {
-    noTimeout(); // ne pas limiter le temps d’inactivité
-    //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
-    updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
+const renderProfilForm = (user = null) => {
+
     $("#newPhotoCmd").hide(); // camouffler l’icone de commande d’ajout de photo
     $("#content").html(`
-        <form class="form" id="createProfilForm" method=POST>
+        <form class="form" id="editProfilForm" method=POST>
             <fieldset>
             <legend>Adresse ce courriel</legend>
             <input type="email"
@@ -195,7 +246,8 @@ const renderFormInscription = () => {
             required
             RequireMessage = 'Veuillez entrer votre courriel'
             InvalidMessage = 'Courriel invalide'
-            CustomErrorMessage ="Ce courriel est déjà utilisé"/>
+            CustomErrorMessage ="Ce courriel est déjà utilisé"
+            value='${user.Email}'/>
             <input class="form-control MatchedInput"
             type="text"
             matchedInputId="Email"
@@ -204,8 +256,10 @@ const renderFormInscription = () => {
             placeholder="Vérification"
             required
             RequireMessage = 'Veuillez entrez de nouveau votre courriel'
-            InvalidMessage="Les courriels ne correspondent pas" />
+            InvalidMessage="Les courriels ne correspondent pas"
+            value='${user.Email}' />
             </fieldset>
+
             <fieldset>
             <legend>Mot de passe</legend>
             <input type="password"
@@ -224,6 +278,7 @@ const renderFormInscription = () => {
             placeholder="Vérification" required
             InvalidMessage="Ne correspond pas au mot de passe" />
             </fieldset>
+
             <fieldset>
             <legend>Nom</legend>
             <input type="text"
@@ -233,14 +288,15 @@ const renderFormInscription = () => {
             placeholder="Nom"
             required
             RequireMessage = 'Veuillez entrer votre nom'
-            InvalidMessage = 'Nom invalide'/>
+            InvalidMessage = 'Nom invalide'
+            value='${user.Name}'/>
             </fieldset>
             <fieldset>
             <legend>Avatar</legend>
             <div class='imageUploader'
             newImage='true'
             controlId='Avatar'
-            imageSrc='images/no-avatar.png'
+            imageSrc='${user.Avatar != null ? user.Avatar : 'images/no-avatar.png'}'
             waitingImage="images/Loading_icon.gif">
             </div>
             </fieldset>
@@ -251,16 +307,22 @@ const renderFormInscription = () => {
             <button class="form-control btn-secondary" id="abortCmd">Annuler</button>
         </div>`
     );
-    
-    
+          
     initFormValidation();
     initImageUploaders();
+}
 
+const renderFormInscription = () => {
+    noTimeout(); // ne pas limiter le temps d’inactivité
+    //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
+    updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
+    
+    renderProfilForm();
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
         $("#content").html(renderFormConnection(null));
     });
-    
+
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
     // call back la soumission du formulaire
     $('#createProfilForm').on("submit", function (event) {
@@ -269,11 +331,11 @@ const renderFormInscription = () => {
         let profil = getFormData($('#createProfilForm'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
-        
+
         showWaitingGif(); // afficher GIF d’attente
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // va voir createProfil
-        createProfil(profil,event); // commander la création au service API
+        createProfil(profil, event); // commander la création au service API
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     });
 
@@ -290,21 +352,30 @@ function getFormData($form) {
 
 async function createProfil(profil) {
 
-    profil = await API.register(profil); 
+    profil = await API.register(profil);
 
-    if(profil) {
+    if (profil) {
         renderFormConnection(profil, `${profil.Name}, Votre compte a été créé.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
-    }  
+    }
     // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
     // renderFromConnection(`Votre compte a été créé.`) 
     // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
+async function modifyProfil(profil){
+    profil = await API.modifyUserProfil(profil);
+    
+    if(profil){
+        console.log('Profil edited');
+    }else{
+        console.log(API.currentHttpError);
+    }
+}
 
-function serverError () {
+function serverError() {
     console.log('server error');
 
     return `
@@ -324,11 +395,11 @@ function retry() {
     });
 }
 
-function handleLoginError (user, errorMsg) {
+function handleLoginError(user, errorMsg) {
     eraseContent();
     renderFormConnection(user);
 
-    if(errorMsg.includes("pass")) {
+    if (errorMsg.includes("pass")) {
         $('.wrong-pass').text("Mot de passe incorret");
     } else if (errorMsg.includes("email")) {
         $('.wrong-email').text("Courriel introuvable");
@@ -339,33 +410,40 @@ function handleLoginError (user, errorMsg) {
     }
 }
 
-const handleloginEvents =  () => {
-    
+const handleloginEvents = () => {
+
     $('form').off().submit(async (e) => {
         e.preventDefault();
         let user = getFormData($("#loginForm"));
         showWaitingGif();
         const token = await API.login(user.Email, user.Password);
-        
-        if(token) {
+
+        if (token) {
             eraseContent();
             $("#content").append(token.Id);
-            $("#header").html(headerLogged());
+            updateHeader('Liste des photos','logged');
             connectedUserEvents();
-        } else { 
+        } else {
             handleLoginError(user, API.currentHttpError);
-            handleloginEvents(); 
+            handleloginEvents();
         }
     });
 }
 
+const renderPhotoIndex = () => {
+    updateHeader('Liste des photos','loggedAddPhoto');
+    $('#content').html(`
+        <p>Photos index... to do</p>
+    
+    `);
+}
 
-$(()=>{
-    if(!API.retrieveLoggedUser()) { // pas connecté
+$(() => {
+    if (!API.retrieveLoggedUser()) { // pas connecté
         renderFormConnection();
-    } else { 
-        $("#header").html(headerLogged());
-        connectedUserEvents();
+    } else {
+        updateHeader('Liste des photos','loggedAddPhoto');
+        //connectedUserEvents(); j'ai mis les events directement dans headerLogged, pour eviter de les perdres quand on change de type header 
 
     }
 })
