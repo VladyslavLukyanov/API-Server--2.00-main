@@ -80,14 +80,14 @@ class API {
         });
     }
 
-    // static getUserByEmail (email) {
-    //     API.initHttpState();
-    //     return new Promise(resolve => {
-    //         $.ajax({
-    //             url
-    //         });
-    //     });
-    // }
+    static isUserVerified (email) {
+        API.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url
+            });
+        });
+    }
 
     static login(Email, Password) {
         API.initHttpState();

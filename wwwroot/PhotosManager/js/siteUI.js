@@ -28,6 +28,10 @@ function updateHeader(title, command) {
         case 'about':
             $('.viewTitle').text(title);
             break;
+        case 'logged':
+            headerLogged();
+            $('.viewTitle').text(title);
+            break;
         default:
             break;
     }
@@ -51,18 +55,19 @@ function headerAnonymous() {
                 <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
             </div>
         </div>
-    </div>`);
+    </div>
+    `);
     $('#aboutCmd').click(() => { renderAbout(); })
     $('#signInCmd').click(() => { renderFormConnection(); })
 }
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
-    return `
+    $("#header").html(`
         <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
         </span>
         <span class="viewTitle">Liste des photos
-        <div class="cmdIcon fa fa-plus" id="newPhotoCmd" title="Ajouter une photo"></div>
+            <div class="cmdIcon fa fa-plus" id="newPhotoCmd" title="Ajouter une photo"></div>
         </span>
         <div class="headerMenusContainer">
         <span>&nbsp;</span> <!--filler-->
@@ -72,10 +77,23 @@ function headerLogged() {
         title="Nicolas Chourot"></div>
         </i>
         <div class="dropdown ms-auto dropdownLayout">
-        <!-- Articles de menu -->
+            <div data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="cmdIcon fa fa-ellipsis-vertical"></i>
+            </div>
+            <div class="dropdown-menu noselect" id="DDMenu">
+                <div class="dropdown-item menuItemLayout" id="signOutCmd">
+                    <i class="menuIcon fa fa-sign-in mx-2"></i> Déconnexion
+                </div>
+                <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                    <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
+                </div>
+            </div>
         </div>
-    `;
+    `);
+    $('#aboutCmd').click(() => { renderAbout(); })
+    $('#signOutCmd').click(() => { logout(); }) // a tester si ca fonctionne...
 }
+
 function renderAbout() {
     timeout();
     saveContentScrollPosition();
@@ -100,10 +118,15 @@ function renderAbout() {
         `);
 }
 
+function logout(){
+    API.logout();
+    renderFormConnection();
+    
+}
 
 const renderFormConnection = (user=null,message = '') => {
 
-    $(".viewTitle").text('Connexion');
+    updateHeader('Connexion','login');
     $("#content").html(`
         <div class="content" style="text-align:center">
             <h3>${message}</h3>
@@ -305,6 +328,10 @@ function handleLoginError (user, errorMsg) {
     }
 }
 
+function handleVerificationError(errorMsg){
+    $('.wrong-code').text(errorMsg);
+}
+
 const handleloginEvents =  () => {
     
     $('form').off().submit(async (e) => {
@@ -312,11 +339,17 @@ const handleloginEvents =  () => {
         let user = getFormData($("#loginForm"));
         
         showWaitingGif();
+
+        // Il faut verif si email confirmed
+        // if(API.verifyEmail(user.id))
         const token = await API.login(user.Email, user.Password);
         
         if(token) {
             eraseContent();
-            $("#content").append(token.Id);
+            if(token.VerifyCode == 'unverified')
+                renderFormAccountValidation(token);
+            else
+                renderPhotoIndex(); // si le user est verified on peut montrer les photos?...
         } else { 
             handleLoginError(user, API.currentHttpError);
             handleloginEvents(); 
@@ -324,15 +357,77 @@ const handleloginEvents =  () => {
     });
 }
 
+const handleVerificationEvent = (user) =>{
+    $('form').off().submit(async (e) => {
+        e.preventDefault();
+        let code = $("#VerificationCode").val();
+        
+        showWaitingGif();
+        console.log(user.Id,code);
+        const passed = await API.verifyEmail(user.Id, code);
+        console.log(passed);
+        if(passed) {
+            eraseContent();
+            renderPhotoIndex();
+        } else { 
+            // retry..
+            eraseContent();
+            renderFormAccountValidation(user);
+            handleVerificationError('le code est invalide.');
+        }
+    });
+}
+
+const renderFormAccountValidation = (user) =>{
+    if(user.VerifyCode == 'unverified'){
+        noTimeout(); // ne pas limiter le temps d’inactivité
+        updateHeader("Vérification", "logged"); // mettre à jour l’entête et menu
+        $('#content').html(`
+        <form class="form" id="verifForm">
+            <p><b>Veuillez entrer le code de vérification que vous avez reçu par courriel.</b><p>
+            <input type='text'
+            name='VerificationCode'
+            class="form-control"
+            id="VerificationCode"
+            required
+            RequireMessage = 'Veuillez entrer votre code de vérification'
+            InvalidMessage = 'Code invalide'
+            placeholder="Code de vérification de courriel">
+
+            <span class='wrong-code' style='color:red'></span>
+            
+            <input type='submit' name='submit' value="Vérifier" class="form-control btn-primary">
+        </form>
+        `);
+        initFormValidation();
+        handleVerificationEvent(user);
+        
+        console.log('verifty form');
+    }
+
+}
+
+const renderPhotoIndex = () => {
+    updateHeader('Liste des photos','logged');
+    $('#content').html(`
+        <p>Photos index... to do</p>
+    
+    `);
+}
 
 $(()=>{
     // Il faut normalement render index mais pour linstant vu qu'on ne l'a pas on render form connection
     let user = API.retrieveLoggedUser();
     console.log('tt');
     if(user){
-
+        console.log(user);
+        
+        renderPhotoIndex();
+        
+        renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
     }
     else{
+        console.log("else");
         updateHeader('Connexion','login');
         renderFormConnection(null);
     }
