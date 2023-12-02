@@ -53,8 +53,8 @@ function headerAnonymous() {
             </div>
         </div>
     </div>`);
-    $('#aboutCmd').click(() => { renderAbout(); })
-    $('#signInCmd').click(() => { renderFromConnection(); })
+    $('#aboutCmd').click(() => { renderAbout(); });
+    $('#signInCmd').click(() => { renderFormConnection(); });
 }
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
