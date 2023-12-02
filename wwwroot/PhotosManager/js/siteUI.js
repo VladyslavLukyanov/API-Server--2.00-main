@@ -365,6 +365,7 @@ async function createProfil(profil) {
     // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
+// C'est ici continuer 
 async function modifyProfil(profil){
     profil = await API.modifyUserProfil(profil);
     
