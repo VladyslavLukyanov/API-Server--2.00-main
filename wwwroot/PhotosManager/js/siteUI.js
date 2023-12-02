@@ -18,7 +18,7 @@ function restoreContentScrollPosition() {
 function updateHeader(title, command) {
     switch (command) {
         case 'createProfil':
-            $('.viewTitlelo').text(title);
+            $('.viewTitle').text(title);
             headerAnonymous();
             break;
         case 'login':
@@ -53,7 +53,7 @@ function headerAnonymous() {
         </div>
     </div>`);
     $('#aboutCmd').click(() => { renderAbout(); })
-    $('#signInCmd').click(() => { renderFromConnection(); })
+    $('#signInCmd').click(() => { renderFormConnection(); })
 }
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
@@ -101,12 +101,12 @@ function renderAbout() {
 }
 
 
-const renderFormConnection = (user=null,title) => {
+const renderFormConnection = (user=null,message = '') => {
 
     $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
-            <h3>${title}</h3>
+            <h3>${message}</h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -224,7 +224,7 @@ const renderFormInscription = () => {
 
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
-        $("#content").html(renderFormConnection(null, 'testset'));
+        $("#content").html(renderFormConnection(null));
     });
     
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
@@ -239,7 +239,7 @@ const renderFormInscription = () => {
         showWaitingGif(); // afficher GIF d’attente
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // va voir createProfil
-        createProfil(profil,event); // commander la création au service API
+        createProfil(profil); // commander la création au service API
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     });
 
@@ -259,7 +259,7 @@ async function createProfil(profil) {
     profil = await API.register(profil); 
 
     if(profil) {
-        renderFormConnection(profil, `Votre compte a été créé.`);
+        renderFormConnection(profil, `Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
@@ -326,6 +326,15 @@ const handleloginEvents =  () => {
 
 
 $(()=>{
-    renderFormConnection(null, 'test');
+    // Il faut normalement render index mais pour linstant vu qu'on ne l'a pas on render form connection
+    let user = API.retrieveLoggedUser();
+    console.log('tt');
+    if(user){
+
+    }
+    else{
+        updateHeader('Connexion','login');
+        renderFormConnection(null);
+    }
 })
 
