@@ -16,9 +16,10 @@ function restoreContentScrollPosition() {
     $("#content")[0].scrollTop = contentScrollPosition;
 }
 function updateHeader(title, command) {
+
     switch (command) {
         case 'createProfil':
-            $('.viewTitlelo').text(title);
+            $('.viewTitle').text(title);
             headerAnonymous();
             break;
         case 'login':
@@ -57,6 +58,8 @@ function headerAnonymous() {
 }
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
+    let isAdmin = loggedUser.Authorizations.readAccess === 2 && loggedUser.Authorizations.writeAccess === 2;
+    
     return `
         <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
@@ -72,10 +75,41 @@ function headerLogged() {
         title="Nicolas Chourot"></div>
         </i>
         <div class="dropdown ms-auto dropdownLayout">
-        <!-- Articles de menu -->
+            <div data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="cmdIcon fa fa-ellipsis-vertical"></i>
+            </div>
+            <div class="dropdown-menu noselect" id="DDMenu">
+                <div class="dropdown-item menuItemLayout" userId='${loggedUser.Id}' id="signOutCmd">
+                    <i class="menuIcon fa fa-sign-out"></i> Deconnexion
+                </div>
+                <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                    <i class="menuIcon fas fa-edit"></i> Modifiez votre profil
+                </div>
+
+                ${
+                    isAdmin ? 
+                    `<hr>
+                    <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                        <i class="menuIcon fas fa-user-cog"></i> Gestion des usagers
+                    </div>`
+                    : ""
+                }
+                
+            </div>
         </div>
     `;
 }
+
+function connectedUserEvents() {
+    $('#signOutCmd').click(async (e) => {
+        showWaitingGif();
+        if( await API.logout() ) {
+            console.log('deconnexion reussie');
+            renderFormConnection(null);
+        }
+    });
+}
+
 function renderAbout() {
     timeout();
     saveContentScrollPosition();
@@ -101,9 +135,9 @@ function renderAbout() {
 }
 
 
-const renderFormConnection = (user=null,title) => {
-
-    $(".viewTitle").text('Connexion');
+const renderFormConnection = (user=null,title='') => {
+    updateHeader("Connexion", 'login');
+    // $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
             <h3>${title}</h3>
@@ -139,8 +173,8 @@ const renderFormConnection = (user=null,title) => {
     handleloginEvents();
 
     $('#createProfilCmd').on("click", () => {
-        $("#content").html(renderFormInscription);
-        $(".viewTitle").text('Inscription');
+        $("#content").html(renderFormInscription());
+        // $(".viewTitle").text('Inscription');
     });
 }
 
@@ -224,7 +258,7 @@ const renderFormInscription = () => {
 
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
-        $("#content").html(renderFormConnection(null, 'testset'));
+        $("#content").html(renderFormConnection(null));
     });
     
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
@@ -259,7 +293,7 @@ async function createProfil(profil) {
     profil = await API.register(profil); 
 
     if(profil) {
-        renderFormConnection(profil, `Votre compte a été créé.`);
+        renderFormConnection(profil, `${profil.Name}, Votre compte a été créé.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
@@ -286,7 +320,7 @@ function retry() {
     $("#tryAgain").click(() => {
         console.log('retry...');
         eraseContent();
-        renderFormConnection(null, "retry");
+        renderFormConnection(null);
     });
 }
 
@@ -296,7 +330,7 @@ function handleLoginError (user, errorMsg) {
 
     if(errorMsg.includes("pass")) {
         $('.wrong-pass').text("Mot de passe incorret");
-    } else if (errorMsg.includes("email")){
+    } else if (errorMsg.includes("email")) {
         $('.wrong-email').text("Courriel introuvable");
     } else {
         $('.form').empty();
@@ -310,13 +344,14 @@ const handleloginEvents =  () => {
     $('form').off().submit(async (e) => {
         e.preventDefault();
         let user = getFormData($("#loginForm"));
-        
         showWaitingGif();
         const token = await API.login(user.Email, user.Password);
         
         if(token) {
             eraseContent();
             $("#content").append(token.Id);
+            $("#header").html(headerLogged());
+            connectedUserEvents();
         } else { 
             handleLoginError(user, API.currentHttpError);
             handleloginEvents(); 
@@ -326,6 +361,12 @@ const handleloginEvents =  () => {
 
 
 $(()=>{
-    renderFormConnection(null, 'test');
+    if(!API.retrieveLoggedUser()) { // pas connecté
+        renderFormConnection();
+    } else { 
+        $("#header").html(headerLogged());
+        connectedUserEvents();
+
+    }
 })
 
