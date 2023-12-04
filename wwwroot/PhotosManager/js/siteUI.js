@@ -176,7 +176,7 @@ const renderEditProfil = (user) => {
     $('#editProfilForm').on("submit", function (event) {
         event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
 
-        let profil = getFormData($('#createProfilForm'));
+        let profil = getFormData($('#editProfilForm'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
 
@@ -232,10 +232,17 @@ const renderFormConnection = (user = null, title = '') => {
 }
 
 const renderProfilForm = (user = null) => {
-
+    if(user){
+        console.log(user)
+        if(user.Avatar.trim() == '' || user.Avatar == 'http://localhost:5000/assetsRepository/'){ // Bizzarement, un user sans image contient http://localhost:5000/assetsRepository/ dans son user.Avatar mais juste du cote front-end , car la table json contient pourtant bien du vide
+            user.Avatar = 'images/no-avatar.png';
+        }
+    }
     $("#newPhotoCmd").hide(); // camouffler l’icone de commande d’ajout de photo
     $("#content").html(`
         <form class="form" id="editProfilForm" method=POST>
+            ${user != null ? `<input type='hidden' name='Id' id='Id' value='${user.Id}'/>` : '' }
+
             <fieldset>
             <legend>Adresse ce courriel</legend>
             <input type="email"
@@ -247,7 +254,7 @@ const renderProfilForm = (user = null) => {
             RequireMessage = 'Veuillez entrer votre courriel'
             InvalidMessage = 'Courriel invalide'
             CustomErrorMessage ="Ce courriel est déjà utilisé"
-            value='${user.Email}'/>
+            value='${user != null ? user.Email : ''}'/>
             <input class="form-control MatchedInput"
             type="text"
             matchedInputId="Email"
@@ -257,25 +264,28 @@ const renderProfilForm = (user = null) => {
             required
             RequireMessage = 'Veuillez entrez de nouveau votre courriel'
             InvalidMessage="Les courriels ne correspondent pas"
-            value='${user.Email}' />
+            value='${user != null ? user.Email : ''}' />
             </fieldset>
 
             <fieldset>
             <legend>Mot de passe</legend>
+            
             <input type="password"
             class="form-control"
             name="Password"
             id="Password"
             placeholder="Mot de passe"
-            required
+            ${user == null ? 'required' : ''} 
             RequireMessage = 'Veuillez entrer un mot de passe'
             InvalidMessage = 'Mot de passe trop court'/>
+            
             <input class="form-control MatchedInput"
             type="password"
             matchedInputId="Password"
             name="matchedPassword"
             id="matchedPassword"
-            placeholder="Vérification" required
+            placeholder="Vérification" 
+            ${user == null ? 'required' : ''}
             InvalidMessage="Ne correspond pas au mot de passe" />
             </fieldset>
 
@@ -289,14 +299,14 @@ const renderProfilForm = (user = null) => {
             required
             RequireMessage = 'Veuillez entrer votre nom'
             InvalidMessage = 'Nom invalide'
-            value='${user.Name}'/>
+            value='${user != null ? user.Name : ''}'/>
             </fieldset>
             <fieldset>
             <legend>Avatar</legend>
             <div class='imageUploader'
             newImage='true'
             controlId='Avatar'
-            imageSrc='${user.Avatar != null ? user.Avatar : 'images/no-avatar.png'}'
+            imageSrc='${user != null ? user.Avatar : 'images/no-avatar.png'}'
             waitingImage="images/Loading_icon.gif">
             </div>
             </fieldset>
@@ -367,10 +377,11 @@ async function createProfil(profil) {
 
 // C'est ici continuer 
 async function modifyProfil(profil){
+    console.log(profil);
     profil = await API.modifyUserProfil(profil);
-    
     if(profil){
         console.log('Profil edited');
+        renderPhotoIndex();
     }else{
         console.log(API.currentHttpError);
     }
