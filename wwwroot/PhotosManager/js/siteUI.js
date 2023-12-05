@@ -376,15 +376,22 @@ async function createProfil(profil) {
 }
 
 // C'est ici continuer 
-async function modifyProfil(profil){
-    console.log(profil);
-    profil = await API.modifyUserProfil(profil);
-    if(profil){
-        console.log('Profil edited');
-        renderPhotoIndex();
-    }else{
-        console.log(API.currentHttpError);
+async function modifyProfil(updatedUser){
+    const loggedUser = API.retrieveLoggedUser();
+    console.log(updatedUser);
+    
+    if(loggedUser.Email !== updatedUser.Email) {
+        updatedUser.verifyCode = 'unverified';
     }
+    
+    updatedUser = await API.modifyUserProfil(updatedUser);
+
+    // if(profil){
+    //     console.log('Profil edited');
+    //     renderPhotoIndex();
+    // }else{
+    //     console.log(API.currentHttpError);
+    // }
 }
 
 function serverError() {
