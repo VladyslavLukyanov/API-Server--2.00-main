@@ -105,21 +105,17 @@ function headerLogged() {
     `);
 
     // on profil photo click
-    $('#editProfilCmd, #editProfilCmd2').click(() => {
-        renderEditProfil(API.retrieveLoggedUser());
-    });
-
-    $('#signOutCmd').click(async (e) => {
-        showWaitingGif();
-        if (await API.logout()) {
-            console.log('deconnexion reussie');
-            renderFormConnection(null);
-        }
-    });
+    connectedUserEvents(loggedUser);
 
 }
 
-function connectedUserEvents() {
+function connectedUserEvents(loggedUser) {
+    if(loggedUser.VerifyCode === 'verified') {
+        $('#editProfilCmd, #editProfilCmd2').click(() => {
+            renderEditProfil(API.retrieveLoggedUser());
+        });
+    }
+    
     $('#signOutCmd').click(async (e) => {
         showWaitingGif();
         if (await API.logout()) {
@@ -127,7 +123,6 @@ function connectedUserEvents() {
             renderFormConnection(null);
         }
     });
-    
 }
 
 function renderAbout() {
@@ -376,22 +371,20 @@ async function createProfil(profil) {
 }
 
 // C'est ici continuer 
-async function modifyProfil(updatedUser){
-    const loggedUser = API.retrieveLoggedUser();
-    console.log(updatedUser);
+async function modifyProfil(updatedUser){ 
     
-    if(loggedUser.Email !== updatedUser.Email) {
-        updatedUser.verifyCode = 'unverified';
-    }
-    
-    updatedUser = await API.modifyUserProfil(updatedUser);
+    let loggedUser = API.retrieveLoggedUser();
 
-    // if(profil){
-    //     console.log('Profil edited');
-    //     renderPhotoIndex();
-    // }else{
-    //     console.log(API.currentHttpError);
-    // }
+    loggedUser = await API.modifyUserProfil(updatedUser);
+    
+    if(loggedUser) {
+        if(loggedUser.VerifyCode === 'unverified')
+            renderFormAccountValidation(loggedUser);
+        else
+            renderPhotoIndex();
+    } else {
+        console.log(API.currentHttpError);
+    }
 }
 
 function serverError() {
@@ -437,16 +430,78 @@ const handleloginEvents = () => {
         showWaitingGif();
         const token = await API.login(user.Email, user.Password);
 
-        if (token) {
+        if(token) {
             eraseContent();
-            $("#content").append(token.Id);
-            updateHeader('Liste des photos','logged');
-            connectedUserEvents();
-        } else {
+            console.log(token);
+            if(token.VerifyCode == 'unverified')
+                renderFormAccountValidation(token);
+            
+            else
+                renderPhotoIndex(); // si le user est verified on peut montrer les photos?...
+        } else { 
             handleLoginError(user, API.currentHttpError);
-            handleloginEvents();
+            handleloginEvents(); 
         }
     });
+}
+
+const handleVerificationEvent = (user) => {
+    $('form').off().submit(async (e) => {
+
+        e.preventDefault();
+
+        let code = $("#VerificationCode").val();
+        showWaitingGif();
+        const passed = await API.verifyEmail(user.Id, code);
+
+        if(passed) {
+            eraseContent();
+            renderPhotoIndex();
+        } else { 
+            // retry..
+            eraseContent();
+            renderFormAccountValidation(user);
+            // handleVerificationError('le code est invalide.');
+        }
+    });
+}
+
+const renderFormAccountValidation = (user, edit=false) => {
+    let message = edit ? `à votre nouvelle adresse` : `par courriel`;
+    console.log(user);
+    if(user.VerifyCode == 'unverified'){
+        noTimeout(); // ne pas limiter le temps d’inactivité
+        updateHeader("Vérification", "logged"); // mettre à jour l’entête et menu
+        $('#content').html(`
+        <form class="form" id="verifForm">
+            <p><b>Veuillez entrer le code de vérification que vous avez reçu ${message}.</b>
+          
+            <p>
+            <input type='text'
+            name='VerificationCode'
+            class="form-control"
+            id="VerificationCode"
+            required
+            RequireMessage = 'Veuillez entrer votre code de vérification'
+            InvalidMessage = 'Code invalide'
+            placeholder="Code de vérification de courriel">
+
+            <span class='wrong-code' style='color:red'></span>
+            
+            <input type='submit' name='submit' value="Vérifier" class="form-control btn-primary">
+            ${
+                edit ? `
+                    <input type='submit' name='submit' value="Garder mon ancien courriel" class="form-control btn-secondary">
+                ` : ""}
+        </form>
+        `);
+        initFormValidation();
+        handleVerificationEvent(user);
+        
+        console.log('verifty form');
+
+    }
+
 }
 
 const renderPhotoIndex = () => {
@@ -457,13 +512,20 @@ const renderPhotoIndex = () => {
     `);
 }
 
-$(() => {
-    if (!API.retrieveLoggedUser()) { // pas connecté
-        renderFormConnection();
-    } else {
-        updateHeader('Liste des photos','loggedAddPhoto');
-        //connectedUserEvents(); j'ai mis les events directement dans headerLogged, pour eviter de les perdres quand on change de type header 
+$(()=>{
+    // Il faut normalement render index mais pour linstant vu qu'on ne l'a pas on render form connection
+    let user = API.retrieveLoggedUser();
 
+    if(user) {
+        console.log(user);
+        
+        renderPhotoIndex();
+        
+        renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
+    } else {
+        console.log("else");
+        updateHeader('Connexion','login');
+        renderFormConnection(null);
     }
 })
 
