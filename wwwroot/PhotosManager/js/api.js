@@ -26,6 +26,19 @@ class API {
     static retrieveAccessToken() {
         return sessionStorage.getItem('access_Token');
     }
+
+    static storeNewEmail(email) {
+        sessionStorage.setItem('newEmail', email);
+    }
+
+    static removeEmailFromStorage() {
+        sessionStorage.removeItem('newEmail');
+    }
+
+    static getNewEmail() {
+        return sessionStorage.getItem('newEmail');
+    }
+
     static storeLoggedUser(user) {
         sessionStorage.setItem('user', JSON.stringify(user));
     }
@@ -115,6 +128,9 @@ class API {
             });
         });
     }
+
+    
+
     static modifyUserProfil(profil) {
         API.initHttpState();
         return new Promise(resolve => {
@@ -132,6 +148,8 @@ class API {
             });
         });
     }
+    
+
     static unsubscribeAccount(userId) {
         API.initHttpState();
         return new Promise(resolve => {

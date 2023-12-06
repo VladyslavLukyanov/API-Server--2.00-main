@@ -16,6 +16,7 @@ function restoreContentScrollPosition() {
     $("#content")[0].scrollTop = contentScrollPosition;
 }
 function updateHeader(title, command) {
+
     switch (command) {
         case 'createProfil':
             $('.viewTitle').text(title);
@@ -28,10 +29,12 @@ function updateHeader(title, command) {
         case 'about':
             $('.viewTitle').text(title);
             break;
+        case 'loggedAddPhoto': // celui la ne retire pas le petit -> (+) pour ajouter photo a partir de header
+            headerLogged();
+            break;
         case 'logged':
             headerLogged();
             $('.viewTitle').text(title);
-            break;
         default:
             break;
     }
@@ -55,14 +58,15 @@ function headerAnonymous() {
                 <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
             </div>
         </div>
-    </div>
-    `);
-    $('#aboutCmd').click(() => { renderAbout(); })
-    $('#signInCmd').click(() => { renderFormConnection(); })
+    </div>`);
+    $('#aboutCmd').click(() => { renderAbout(); });
+    $('#signInCmd').click(() => { renderFormConnection(); });
 }
 function headerLogged() {
     let loggedUser = API.retrieveLoggedUser();
-    $("#header").html(`
+    let isAdmin = loggedUser.Authorizations.readAccess === 2 && loggedUser.Authorizations.writeAccess === 2;
+
+    $('#header').html( `
         <span title="Liste des photos" id="listPhotosCmd">
         <img src="images/PhotoCloudLogo.png" class="appLogo">
         </span>
@@ -81,17 +85,44 @@ function headerLogged() {
                 <i class="cmdIcon fa fa-ellipsis-vertical"></i>
             </div>
             <div class="dropdown-menu noselect" id="DDMenu">
-                <div class="dropdown-item menuItemLayout" id="signOutCmd">
-                    <i class="menuIcon fa fa-sign-in mx-2"></i> Déconnexion
+                <div class="dropdown-item menuItemLayout" userId='${loggedUser.Id}' id="signOutCmd">
+                    <i class="menuIcon fa fa-sign-out"></i> Deconnexion
                 </div>
-                <div class="dropdown-item menuItemLayout" id="aboutCmd">
-                    <i class="menuIcon fa fa-info-circle mx-2"></i> À propos...
+                <div class="dropdown-item menuItemLayout" id="editProfilCmd2">
+                    <i class="menuIcon fas fa-edit"></i> Modifiez votre profil
                 </div>
+
+                ${isAdmin ?
+            `<hr>
+                    <div class="dropdown-item menuItemLayout" id="aboutCmd">
+                        <i class="menuIcon fas fa-user-cog"></i> Gestion des usagers
+                    </div>`
+            : ""
+        }
+                
             </div>
         </div>
     `);
-    $('#aboutCmd').click(() => { renderAbout(); })
-    $('#signOutCmd').click(() => { logout(); }) // a tester si ca fonctionne...
+
+    // on profil photo click
+    connectedUserEvents(loggedUser);
+
+}
+
+function connectedUserEvents(loggedUser) {
+    if(loggedUser.VerifyCode === 'verified') {
+        $('#editProfilCmd, #editProfilCmd2').click(() => {
+            renderEditProfil(API.retrieveLoggedUser());
+        });
+    }
+    
+    $('#signOutCmd').click(async (e) => {
+        showWaitingGif();
+        if (await API.logout()) {
+            console.log('deconnexion reussie');
+            renderFormConnection(null);
+        }
+    });
 }
 
 function renderAbout() {
@@ -124,9 +155,42 @@ function logout(){
     
 }
 
-const renderFormConnection = (user=null,message = '') => {
+const renderEditProfil = (user) => {
+    //let isAdmin = user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2;
+    updateHeader('Profil','logged');
+    renderProfilForm(user);
+    
+    $('.cancel').after(`
+        <div class="cancel">
+        <hr>
+            <button class="form-control btn-warning" id="deleteAccountCmd">Effacer le compte</button>
+        </div>
+    `);
+    $(".cancel").click(() => {
+        updateHeader('Listes des photos','loggedAddPhoto');
+        renderPhotoIndex();
+    });
 
-    updateHeader('Connexion','login');
+    addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser'); // trouver une facon de ne pas check email presentement utilisé par user
+    // call back la soumission du formulaire
+    $('#editProfilForm').on("submit", function (event) {
+        event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
+
+        let profil = getFormData($('#editProfilForm'));
+        delete profil.matchedPassword;
+        delete profil.matchedEmail;
+
+        showWaitingGif(); // afficher GIF d’attente
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // va voir createProfil
+        modifyProfil(profil); // commander la création au service API
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    });
+}
+
+const renderFormConnection = (user = null, title = '') => {
+    updateHeader("Connexion", 'login');
+    // $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
             <h3>${message}</h3>
@@ -162,18 +226,23 @@ const renderFormConnection = (user=null,message = '') => {
     handleloginEvents();
 
     $('#createProfilCmd').on("click", () => {
-        $("#content").html(renderFormInscription);
-        $(".viewTitle").text('Inscription');
+        $("#content").html(renderFormInscription());
+        // $(".viewTitle").text('Inscription');
     });
 }
 
-const renderFormInscription = () => {
-    noTimeout(); // ne pas limiter le temps d’inactivité
-    //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
-    updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
+const renderProfilForm = (user = null) => {
+    if(user){
+        console.log(user)
+        if(user.Avatar.trim() == '' || user.Avatar == 'http://localhost:5000/assetsRepository/'){ // Bizzarement, un user sans image contient http://localhost:5000/assetsRepository/ dans son user.Avatar mais juste du cote front-end , car la table json contient pourtant bien du vide
+            user.Avatar = 'images/no-avatar.png';
+        }
+    }
     $("#newPhotoCmd").hide(); // camouffler l’icone de commande d’ajout de photo
     $("#content").html(`
-        <form class="form" id="createProfilForm" method=POST>
+        <form class="form" id="editProfilForm" method=POST>
+            ${user != null ? `<input type='hidden' name='Id' id='Id' value='${user.Id}'/>` : '' }
+
             <fieldset>
             <legend>Adresse ce courriel</legend>
             <input type="email"
@@ -184,7 +253,8 @@ const renderFormInscription = () => {
             required
             RequireMessage = 'Veuillez entrer votre courriel'
             InvalidMessage = 'Courriel invalide'
-            CustomErrorMessage ="Ce courriel est déjà utilisé"/>
+            CustomErrorMessage ="Ce courriel est déjà utilisé"
+            value='${user != null ? user.Email : ''}'/>
             <input class="form-control MatchedInput"
             type="text"
             matchedInputId="Email"
@@ -193,26 +263,32 @@ const renderFormInscription = () => {
             placeholder="Vérification"
             required
             RequireMessage = 'Veuillez entrez de nouveau votre courriel'
-            InvalidMessage="Les courriels ne correspondent pas" />
+            InvalidMessage="Les courriels ne correspondent pas"
+            value='${user != null ? user.Email : ''}' />
             </fieldset>
+
             <fieldset>
             <legend>Mot de passe</legend>
+            
             <input type="password"
             class="form-control"
             name="Password"
             id="Password"
             placeholder="Mot de passe"
-            required
+            ${user == null ? 'required' : ''} 
             RequireMessage = 'Veuillez entrer un mot de passe'
             InvalidMessage = 'Mot de passe trop court'/>
+            
             <input class="form-control MatchedInput"
             type="password"
             matchedInputId="Password"
             name="matchedPassword"
             id="matchedPassword"
-            placeholder="Vérification" required
+            placeholder="Vérification" 
+            ${user == null ? 'required' : ''}
             InvalidMessage="Ne correspond pas au mot de passe" />
             </fieldset>
+
             <fieldset>
             <legend>Nom</legend>
             <input type="text"
@@ -222,14 +298,15 @@ const renderFormInscription = () => {
             placeholder="Nom"
             required
             RequireMessage = 'Veuillez entrer votre nom'
-            InvalidMessage = 'Nom invalide'/>
+            InvalidMessage = 'Nom invalide'
+            value='${user != null ? user.Name : ''}'/>
             </fieldset>
             <fieldset>
             <legend>Avatar</legend>
             <div class='imageUploader'
             newImage='true'
             controlId='Avatar'
-            imageSrc='images/no-avatar.png'
+            imageSrc='${user != null ? user.Avatar : 'images/no-avatar.png'}'
             waitingImage="images/Loading_icon.gif">
             </div>
             </fieldset>
@@ -240,16 +317,22 @@ const renderFormInscription = () => {
             <button class="form-control btn-secondary" id="abortCmd">Annuler</button>
         </div>`
     );
-    
-    
+          
     initFormValidation();
     initImageUploaders();
+}
 
+const renderFormInscription = () => {
+    noTimeout(); // ne pas limiter le temps d’inactivité
+    //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
+    updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
+    
+    renderProfilForm();
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
         $("#content").html(renderFormConnection(null));
     });
-    
+
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
     // call back la soumission du formulaire
     $('#createProfilForm').on("submit", function (event) {
@@ -258,7 +341,7 @@ const renderFormInscription = () => {
         let profil = getFormData($('#createProfilForm'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
-        
+
         showWaitingGif(); // afficher GIF d’attente
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // va voir createProfil
@@ -286,14 +369,30 @@ async function createProfil(profil) {
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
-    }  
+    }
     // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
     // renderFromConnection(`Votre compte a été créé.`) 
     // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
 }
 
+// C'est ici continuer 
+async function modifyProfil(updatedUser){ 
+    
+    let loggedUser = API.retrieveLoggedUser();
 
-function serverError () {
+    loggedUser = await API.modifyUserProfil(updatedUser);
+    
+    if(loggedUser) {
+        if(loggedUser.VerifyCode === 'unverified')
+            renderFormAccountValidation(loggedUser);
+        else
+            renderPhotoIndex();
+    } else {
+        console.log(API.currentHttpError);
+    }
+}
+
+function serverError() {
     console.log('server error');
 
     return `
@@ -309,17 +408,17 @@ function retry() {
     $("#tryAgain").click(() => {
         console.log('retry...');
         eraseContent();
-        renderFormConnection(null, "retry");
+        renderFormConnection(null);
     });
 }
 
-function handleLoginError (user, errorMsg) {
+function handleLoginError(user, errorMsg) {
     eraseContent();
     renderFormConnection(user);
 
-    if(errorMsg.includes("pass")) {
+    if (errorMsg.includes("pass")) {
         $('.wrong-pass').text("Mot de passe incorret");
-    } else if (errorMsg.includes("email")){
+    } else if (errorMsg.includes("email")) {
         $('.wrong-email').text("Courriel introuvable");
     } else {
         $('.form').empty();
@@ -337,16 +436,17 @@ const handleloginEvents =  () => {
     $('form').off().submit(async (e) => {
         e.preventDefault();
         let user = getFormData($("#loginForm"));
-        
         showWaitingGif();
 
         // Il faut verif si email confirmed
         const token = await API.login(user.Email, user.Password);
-        
+
         if(token) {
             eraseContent();
+            console.log(token);
             if(token.VerifyCode == 'unverified')
                 renderFormAccountValidation(token);
+            
             else
                 renderPhotoIndex(); // si le user est verified on peut montrer les photos?...
         } else { 
@@ -356,15 +456,15 @@ const handleloginEvents =  () => {
     });
 }
 
-const handleVerificationEvent = (user) =>{
+const handleVerificationEvent = (user) => {
     $('form').off().submit(async (e) => {
+
         e.preventDefault();
+
         let code = $("#VerificationCode").val();
-        
         showWaitingGif();
-        console.log(user.Id,code);
         const passed = await API.verifyEmail(user.Id, code);
-        console.log(passed);
+
         if(passed) {
             eraseContent();
             renderPhotoIndex();
@@ -377,7 +477,9 @@ const handleVerificationEvent = (user) =>{
     });
 }
 
-const renderFormAccountValidation = (user) =>{
+const renderFormAccountValidation = (user, edit=false) => {
+    let message = edit ? `à votre nouvelle adresse` : `par courriel`;
+    console.log(user);
     if(user.VerifyCode == 'unverified'){
         noTimeout(); // ne pas limiter le temps d’inactivité
         updateHeader("Vérification", "logged"); // mettre à jour l’entête et menu
@@ -396,6 +498,10 @@ const renderFormAccountValidation = (user) =>{
             <span class='wrong-code' style='color:red'></span>
             
             <input type='submit' name='submit' value="Vérifier" class="form-control btn-primary">
+            ${
+                edit ? `
+                    <input type='submit' name='submit' value="Garder mon ancien courriel" class="form-control btn-secondary">
+                ` : ""}
         </form>
         `);
         initFormValidation();
@@ -407,10 +513,8 @@ const renderFormAccountValidation = (user) =>{
 
 }
 
-console.log('sss');
-
 const renderPhotoIndex = () => {
-    updateHeader('Liste des photos','logged');
+    updateHeader('Liste des photos','loggedAddPhoto');
     $('#content').html(`
         <p>Photos index... to do</p>
     
@@ -420,15 +524,14 @@ const renderPhotoIndex = () => {
 $(()=>{
     // Il faut normalement render index mais pour linstant vu qu'on ne l'a pas on render form connection
     let user = API.retrieveLoggedUser();
-    console.log('tt');
-    if(user){
+
+    if(user) {
         console.log(user);
         
         renderPhotoIndex();
         
         renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
-    }
-    else{
+    } else {
         console.log("else");
         updateHeader('Connexion','login');
         renderFormConnection(null);
