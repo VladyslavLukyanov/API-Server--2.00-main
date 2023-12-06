@@ -68,6 +68,7 @@ class API {
     }
     static register(profil) {
         API.initHttpState();
+        console.log(serverHost + "/accounts/register")
         return new Promise(resolve => {
             $.ajax({
                 url: serverHost + "/accounts/register",
@@ -82,6 +83,7 @@ class API {
 
     static login(Email, Password) {
         API.initHttpState();
+        console.log(serverHost);
         return new Promise(resolve => {
             $.ajax({
                 url: API.tokenRequestURL(),

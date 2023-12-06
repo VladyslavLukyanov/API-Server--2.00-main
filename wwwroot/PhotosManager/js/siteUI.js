@@ -280,7 +280,7 @@ function getFormData($form) {
 async function createProfil(profil) {
 
     profil = await API.register(profil); 
-
+    
     if(profil) {
         renderFormConnection(profil, `Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
         console.log(profil);
@@ -402,9 +402,12 @@ const renderFormAccountValidation = (user) =>{
         handleVerificationEvent(user);
         
         console.log('verifty form');
+
     }
 
 }
+
+console.log('sss');
 
 const renderPhotoIndex = () => {
     updateHeader('Liste des photos','logged');
