@@ -1,3 +1,4 @@
+
 let contentScrollPosition = 0;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Views rendering
@@ -155,6 +156,12 @@ const renderEditProfil = (user) => {
     updateHeader('Profil','logged');
     renderProfilForm(user);
     
+    // let notChangedPasswordGuid = uuidv1();
+    // console.log(notChangedPasswordGuid);
+    // $('#editProfilForm').append(`
+    //     <input name=Password type=hidden value=${notChangedPasswordGuid}/>
+    //     <input name=matchedPassword type=hidden value=${notChangedPasswordGuid}/>
+    // `);
     $('.cancel').after(`
         <div class="cancel">
         <hr>
@@ -164,6 +171,15 @@ const renderEditProfil = (user) => {
     $(".cancel").click(() => {
         updateHeader('Listes des photos','loggedAddPhoto');
         renderPhotoIndex();
+    });
+    $("#Password").on('input',function(event){
+        console.log(event.currentTarget.value);
+        if(event.currentTarget.value.trim()){
+            console.log('ecriture');
+            $('#matchedPassword').attr('Required','');
+        }else{
+            $('#matchedPassword').removeAttr('Required');
+        }
     });
 
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser'); // trouver une facon de ne pas check email presentement utilisé par user
