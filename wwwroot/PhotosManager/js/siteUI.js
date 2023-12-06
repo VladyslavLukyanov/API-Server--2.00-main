@@ -173,7 +173,7 @@ const renderEditProfil = (user) => {
 
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser'); // trouver une facon de ne pas check email presentement utilisé par user
     // call back la soumission du formulaire
-    $('#editProfilForm').on("submit", function (event) {
+    $('#editProfilForm').off().on("submit", function (event) {
         event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
 
         let profil = getFormData($('#editProfilForm'));
@@ -193,7 +193,7 @@ const renderFormConnection = (user = null, title = '') => {
     // $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
-            <h3>${message}</h3>
+            <h3>${title}</h3>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -310,7 +310,7 @@ const renderProfilForm = (user = null) => {
             waitingImage="images/Loading_icon.gif">
             </div>
             </fieldset>
-            <input type='submit' name='submit' id='saveUserCmd' value="Enregistrer" class="form-control btn-primary">
+            <button type='submit' name='submit' id='saveUserCmd' class="form-control btn-primary">Enregistrer</button>
         </form>
         </div>
         <div class="cancel">
@@ -326,8 +326,12 @@ const renderFormInscription = () => {
     noTimeout(); // ne pas limiter le temps d’inactivité
     //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
     updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
-    
+
     renderProfilForm();
+    console.log($('.form'));
+
+
+
     $(".cancel").click(() => {
         $("#header").html(updateHeader);
         $("#content").html(renderFormConnection(null));
@@ -335,10 +339,14 @@ const renderFormInscription = () => {
 
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser');
     // call back la soumission du formulaire
-    $('#createProfilForm').on("submit", function (event) {
+    $('.form').on("submit", function (event) {
         event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
 
-        let profil = getFormData($('#createProfilForm'));
+        console.log('create');
+
+        // console.log($("#createProfilForm"));
+
+        let profil = getFormData($('.form'));
         delete profil.matchedPassword;
         delete profil.matchedEmail;
 
@@ -363,16 +371,14 @@ function getFormData($form) {
 async function createProfil(profil) {
 
     profil = await API.register(profil); 
-    
     if(profil) {
-        renderFormConnection(profil, `Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
+        console.log(profil)
+        renderFormConnection(profil, `Veuillez prendre vos courriels pour récupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
         console.log(profil);
     } else {
         console.log(API.currentHttpError);
     }
-    // Pourquoi on se fait rafraichir la page quand on s'inscrit pourtant on le event.preventDefault est appeler en haut?
-    // renderFromConnection(`Votre compte a été créé.`) 
-    // Veuillez prendre vos courriels pour réccupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
+    
 }
 
 // C'est ici continuer 
@@ -477,9 +483,8 @@ const handleVerificationEvent = (user) => {
     });
 }
 
-const renderFormAccountValidation = (user, edit=false) => {
-    let message = edit ? `à votre nouvelle adresse` : `par courriel`;
-    console.log(user);
+const renderFormAccountValidation = (user) => {
+    // let message = edit ? `à votre nouvelle adresse` : `par courriel`;
     if(user.VerifyCode == 'unverified'){
         noTimeout(); // ne pas limiter le temps d’inactivité
         updateHeader("Vérification", "logged"); // mettre à jour l’entête et menu
@@ -494,16 +499,11 @@ const renderFormAccountValidation = (user, edit=false) => {
             RequireMessage = 'Veuillez entrer votre code de vérification'
             InvalidMessage = 'Code invalide'
             placeholder="Code de vérification de courriel">
-
             <span class='wrong-code' style='color:red'></span>
-            
             <input type='submit' name='submit' value="Vérifier" class="form-control btn-primary">
-            ${
-                edit ? `
-                    <input type='submit' name='submit' value="Garder mon ancien courriel" class="form-control btn-secondary">
-                ` : ""}
-        </form>
-        `);
+        
+        </form>`);
+
         initFormValidation();
         handleVerificationEvent(user);
         
@@ -516,20 +516,14 @@ const renderFormAccountValidation = (user, edit=false) => {
 const renderPhotoIndex = () => {
     updateHeader('Liste des photos','loggedAddPhoto');
     $('#content').html(`
-        <p>Photos index... to do</p>
-    
-    `);
+        <p>Photos index... to do</p> `);
 }
 
-$(()=>{
+$(() => {
     // Il faut normalement render index mais pour linstant vu qu'on ne l'a pas on render form connection
     let user = API.retrieveLoggedUser();
-
     if(user) {
-        console.log(user);
-        
         renderPhotoIndex();
-        
         renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
     } else {
         console.log("else");
