@@ -341,7 +341,6 @@ const handleloginEvents =  () => {
         showWaitingGif();
 
         // Il faut verif si email confirmed
-        // if(API.verifyEmail(user.id))
         const token = await API.login(user.Email, user.Password);
         
         if(token) {
