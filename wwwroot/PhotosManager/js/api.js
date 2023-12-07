@@ -165,6 +165,24 @@ class API {
             });
         });
     }
+
+    static getUserById(userId) {
+        API.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url: serverHost + "/accounts/get" + userId,
+                contentType: 'application/json',
+                type: 'GET',
+                headers: API.getBearerAuthorizationToken(),
+                success: (data, status, xhr) => {
+                    let ETag = xhr.getResponseHeader("ETag");
+                    resolve({ data, ETag });
+                },
+                error: xhr => { API.setHttpErrorState(xhr); resolve(false); }
+            });
+        });
+    }
+
     static GetAccounts() {
         API.initHttpState();
         return new Promise(resolve => {
