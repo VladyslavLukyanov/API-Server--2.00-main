@@ -86,20 +86,50 @@ function headerLogged() {
                 <i class="cmdIcon fa fa-ellipsis-vertical"></i>
             </div>
             <div class="dropdown-menu noselect" id="DDMenu">
+            ${isAdmin ?
+            `
+                <div class="dropdown-item menuItemLayout" id="manageUserCm">
+                    <i class="menuIcon fas fa-user-cog"></i> Gestion des usagers
+                </div> <hr>`
+            : ""}
                 <div class="dropdown-item menuItemLayout" userId='${loggedUser.Id}' id="signOutCmd">
                     <i class="menuIcon fa fa-sign-out"></i> Deconnexion
                 </div>
                 <div class="dropdown-item menuItemLayout" id="editProfilCmd2">
                     <i class="menuIcon fas fa-edit"></i> Modifiez votre profil
                 </div>
+                <div class="dropdown-divider"></div>
+                <span class="dropdown-item" id="listPhotosMenuCmd">
+                <i class="menuIcon fa fa-image mx-2"></i>
+                Liste des photos
+                </span>
+                <div class="dropdown-divider"></div>
+                <span class="dropdown-item" id="sortByDateCmd">
+                <i class="menuIcon fa fa-check mx-2"></i>
+                <i class="menuIcon fa fa-calendar mx-2"></i>
+                Photos par date de création
+                </span>
+                <span class="dropdown-item" id="sortByOwnersCmd">
+                <i class="menuIcon fa fa-fw mx-2"></i>
+                <i class="menuIcon fa fa-users mx-2"></i>
+                Photos par créateur
+                </span>
+                <span class="dropdown-item" id="sortByLikesCmd">
+                <i class="menuIcon fa fa-fw mx-2"></i>
+                <i class="menuIcon fa fa-user mx-2"></i>
+                Photos les plus aiméés
+                </span>
+                <span class="dropdown-item" id="ownerOnlyCmd">
+                <i class="menuIcon fa fa-fw mx-2"></i>
+                <i class="menuIcon fa fa-user mx-2"></i>
+                Mes photos
+                </span>
+                <div class="dropdown-divider"></div>
+                <span class="dropdown-item" id="aboutCmd">
+                    <i class="menuIcon fa fa-info-circle mx-2"></i>
+                    À propos...
+                </span>
 
-                ${isAdmin ?
-            `<hr>
-                    <div class="dropdown-item menuItemLayout" id="aboutCmd">
-                        <i class="menuIcon fas fa-user-cog"></i> Gestion des usagers
-                    </div>`
-            : ""
-        }
                 
             </div>
         </div>
@@ -107,7 +137,10 @@ function headerLogged() {
 
     // on profil photo click
     connectedUserEvents(loggedUser);
-
+    $('#aboutCmd').click(() => { renderAbout(); });
+    if(isAdmin){
+        $('#manageUserCm').click(()=>renderUsersList())
+    }
 }
 
 function connectedUserEvents(loggedUser) {
@@ -361,6 +394,74 @@ const renderFormInscription = () => {
     });
 
 };
+
+async function renderUsersList(){
+    updateHeader('Gestion des usagers', 'logged');
+    let users = await API.GetAccounts();
+    console.log(users['data']);
+    let currentUser = await API.retrieveLoggedUser();
+    let html = '';
+    users['data'].forEach(user => {
+        if(currentUser.Id != user.Id){
+            let userType = `<i title=Usager class="fas fa-user-alt dodgerblueCmd"></i>`; // usager normal
+            let userStatus = `<i title=Valide class="fa-regular fa-circle greenCmd"></i>`;
+            let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd"></i>`;
+            
+            if(user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2){ 
+                userType = `<i title=Administrateur class="fas fa-user-cog dodgerblueCmd"></i>`; // admin
+            }
+            // if(user.blocked) comment on fait pour savoir user blocked?
+            html += `<div class=UserRow> 
+                    <div class=UserContainer>
+                        <div class=UserLayout>
+                            <div class=UserAvatarSmall style='background-image:url(${user.Avatar})'>
+                            </div> 
+                            <div class=UserInfo>
+                                <div class=UserName>${user.Name}</div>
+                                <div class=UserEmail>${user.Email}</div>
+                            </div>
+                        </div> 
+                        <div class=UserCommandPanel userid=${user.Id}>
+                            ${userType}
+                            ${userStatus}
+                            ${deleteUser}
+                        </div>                     
+                    </div>
+                </div>`
+        }
+        
+        
+    });
+
+    $('#content').html(html);
+
+
+}
+
+async function getUsersList(){
+    let users = await API.GetAccounts();
+    console.log(users['data']);
+    let html = '';
+    users['data'].forEach(user => {
+        // faire une fonction utile pour savoir si admin comme ca on peut la call nimporte ou dans le code ?
+        let userType = `<i title=Administrateur class="fas fa-user-alt"></i>`; // usager normal
+        let userStatus = `<i title=Usager class="fa-regular fa-circle greenCmd"></i>`;
+        let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd" userid=${user.Id}></i>`;
+        
+        if(user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2){ 
+            userType = `<i class="fas fa-user-cog"></i>`; // admin
+        }
+        // if(user.blocked) comment on fait pour savoir user blocked?
+        
+        html += `<div class=row> 
+                    <div class=col-3></div> 
+                    <div class=col-6></div> 
+                    <div class=col-3>${userType}${userStatus}${deleteUser}</div> 
+                </div>`
+    });
+
+    return html;
+}
 
 function getFormData($form) {
     const removeTag = new RegExp("(<[a-zA-Z0-9]+>)|(</[a-zA-Z0-9]+>)", "g");
