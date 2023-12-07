@@ -221,6 +221,23 @@ class API {
         });
     }
 
+    static block(userId) {
+        API.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url: serverHost + "/accounts/blockunblock/",
+                contentType: 'application/json',
+                type: 'PUT',
+                data: JSON.stringify({Id:userId, readAccess: 2, writeAccess: 2 }),
+                headers: API.getBearerAuthorizationToken(),
+                success: () => {
+                    resolve(true);
+                },
+                error: xhr => { API.setHttpErrorState(xhr); resolve(false); }
+            });
+        });
+    }
+
 
     static GetPhotosETag() {
         API.initHttpState();

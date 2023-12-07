@@ -57,6 +57,7 @@
     gap: 4px;
     align-items: center;
     text-align: left;
+    justify-content: center;
 }
 
 .UserInfo {

@@ -183,10 +183,16 @@ function renderAbout() {
         `);
 }
 
-function logout(){
-    API.logout();
-    renderFormConnection();
+async function logout(banned = false){
+    if (await API.logout()) {
+        if(banned) {
+            renderFormConnection(null, "banni par admin");
     
+        } else {
+            renderFormConnection(null, "");
+    
+        }
+    }
 }
 
 const renderEditProfil = (user) => {
@@ -307,9 +313,58 @@ function renderDeleteUser(id) {
 
     $("#supprimer").on('click', async() => {
        if( await API.unsubscribeAccount(id) ) {
-        renderFormConnection(null);
+            if( await API.logout() ) {
+                renderFormConnection(null);
+            }
        }
     });
+
+    $("#annulerSuppresion").click(() => {
+        renderPhotoIndex();
+    });
+}
+
+async function renderDeleteAnotherUser(id) {
+
+    let users = await API.GetAccounts();
+    showWaitingGif();
+    if(users) {
+
+        let utilisateurTrouve = users['data'].find(user => user.Id === id);
+        console.log(utilisateurTrouve);
+        $("#content").html (`
+            <div class="content" style="text-align:center">
+                <h4 style="margin-top:30px">Voulez-vous vraiment effacer cet usager et toutes ses photos?</h4>
+                    <div class="UserLayout">
+                    <div class="UserAvatar" style="background-image:url('${utilisateurTrouve.Avatar}')"></div>
+                    <div class="UserInfo">
+                            <span class="UserName">${utilisateurTrouve.Name}</span>
+                            <span class="UserEmail">${utilisateurTrouve.Email}</span>
+                        </div>
+                    </div>
+                <div class="form">
+                    <button class="form-control btn-danger" id="deleteUserCmd">Effacer mon compte</button>
+                </div>
+                <div class="form">
+                    <button class="form-control btn-secondary" id="cancelCmd">Annuler</button>
+                </div>
+            </div>    
+        `);
+    
+        $("#deleteUserCmd").click(async () => {
+            if( await API.unsubscribeAccount(id) ) {
+                renderUsersList();
+            }
+        });
+
+        $("#cancelCmd").click(() => {
+            renderUsersList();
+        })
+    }
+
+    
+
+
 }
 
 const renderProfilForm = (user = null) => {
@@ -440,35 +495,8 @@ const renderFormInscription = () => {
 
 };
 
-function blockUser () {
-    $(".block").click (async function () {
-        let idUser = $(this).attr('id');
-        let userToBlock = null;
-        
-        
-        let users = await API.GetAccounts();
+// 
 
-        if(users) {
-
-            for(const user of users['data']) {
-                if(user.Id===idUser) {
-                    user.Authorizations.readAccess = 0;
-                    user.Authorizations.writeAccess = 0;
-                    userToBlock = user;
-                    break;
-                }
-            }
-
-            if(userToBlock) {
-                res = await API.modifyUserProfil(userToBlock);
-                if(res) {
-                    console.log('changed');
-                }
-            } 
-        }
-
-    });
-}
 
 async function renderUsersList(){
     updateHeader('Gestion des usagers', 'logged');
@@ -480,12 +508,16 @@ async function renderUsersList(){
         if(currentUser.Id != user.Id){
             let userType = `<i title=Usager class="fas fa-user-alt dodgerblueCmd"></i>`; // usager normal
             let userStatus = `<i title=Valide class="fa-regular fa-circle greenCmd block" id='${user.Id}'></i>`;
-            let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd"></i>`;
+            let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd" id='${user.Id}'></i>`;
             
             if(user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2){ 
                 userType = `<i title=Administrateur class="fas fa-user-cog dodgerblueCmd"></i>`; // admin
             }
-            // if(user.blocked) comment on fait pour savoir user blocked?
+            
+            if(user.Authorizations.readAccess === 0 && user.Authorizations.writeAccess === 0) {
+                userStatus = `<i title=Valide class="fa fa-ban redCmd block" id='${user.Id}'></i>`
+            }
+
             html += `<div class=UserRow> 
                     <div class=UserContainer>
                         <div class=UserLayout>
@@ -518,10 +550,23 @@ async function renderUsersList(){
     $('.fa-user-cog').click((event)=>{
         let userId = $(event.currentTarget).parent().attr('userid');
         console.log('cog',userId);
+        grantAdminCommand(userId);
     });
-    blockUser();
 
+    $(".block").click(function () {
+        let id = $(this).attr('id');
+        blockUsers(id);
+    });
+
+    $(".goldenrodCmd").click(async function () {
+        let id = $(this).attr('id');
+        console.log(id);
+        renderDeleteAnotherUser(id);
+        
+    });
 }
+
+
 
 
 
@@ -537,6 +582,15 @@ function getFormData($form) {
 async function grantAdminCommand(userId){
     let pass = await API.grantAdmin(userId);
     if(pass){
+        renderUsersList();
+    }
+}
+
+async function blockUsers(userId) {
+    let pass = await API.block(userId);
+
+    if(pass) {
+        console.log(pass);
         renderUsersList();
     }
 }
@@ -616,13 +670,13 @@ const handleloginEvents =  () => {
         e.preventDefault();
         let user = getFormData($("#loginForm"));
         showWaitingGif();
-
         // Il faut verif si email confirmed
         const token = await API.login(user.Email, user.Password);
-
         if(token) {
+            if(token.Authorizations.readAccess == 0 && token.Authorizations.writeAccess == 0) {
+                logout(true);
+            }
             eraseContent();
-            console.log(token);
             if(token.VerifyCode == 'unverified')
                 renderFormAccountValidation(token);
             
@@ -699,7 +753,6 @@ $(() => {
         renderPhotoIndex();
         renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
     } else {
-        console.log("else");
         updateHeader('Connexion','login');
         renderFormConnection(null);
     }

@@ -24,13 +24,58 @@ export default class AccountsController extends Controller {
                 this.HttpContext.response.unAuthorized("Unauthorized access");
         }
     }
-    changeauth(user){
-        if (user != undefined) {
-            if (Authorizations.readGranted(this.HttpContext, Authorizations.admin())){
+
+    blockunblock(user) {
+        console.log("BLOCK");
+        console.log(user);
+        if(user != undefined) {
+            if(Authorizations.writeGranted(this.HttpContext, Authorizations.admin())) {
                 let userFound = this.repository.findByField('Id', user.Id);
-                if(userFound){
-                    userFound.Authorizations = authorizations;
+
+                if(userFound) {
+                    if(userFound.Authorizations.readAccess === 0 && userFound.Authorizations.writeAccess === 0) {
+                        console.log("00000000")
+                        userFound.Authorizations.readAccess = 1;
+                        userFound.Authorizations.writeAccess = 1;
+                    } else {
+                        userFound.Authorizations.readAccess = 0;
+                        userFound.Authorizations.writeAccess = 0;
+                    }
+
                     userFound = this.repository.update(userFound.Id, userFound);
+
+                    if (this.repository.model.state.isValid) {
+                        this.HttpContext.response.updated(userFound);
+                    } else {
+                        this.HttpContext.response.unprocessable();
+                    }
+                } 
+            } else {
+                this.HttpContext.response.unAuthorized("Unauthorized access");
+            }
+        }
+    }
+
+    changeauth(user) {
+        console.log('CHANGEAUTH');
+        console.log(user);
+        if (user != undefined) {
+            console.log('user est')
+            if (Authorizations.writeGranted(this.HttpContext, Authorizations.admin())){
+                let userFound = this.repository.findByField('Id', user.Id);
+                console.log(userFound);
+                if(userFound) {
+
+                    if(userFound.Authorizations.writeAccess == 2
+                        && userFound.Authorizations.readAccess == 2) {
+                            userFound.Authorizations.writeAccess = 1;
+                            userFound.Authorizations.readAccess = 1;
+                        } else {
+                            userFound.Authorizations.writeAccess = 2;
+                            userFound.Authorizations.readAccess = 2;
+                        }
+                    userFound = this.repository.update(userFound.Id, userFound);
+
                     if (this.repository.model.state.isValid) {
                         this.HttpContext.response.updated(userFound);
                     } else {
