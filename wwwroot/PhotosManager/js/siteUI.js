@@ -438,30 +438,7 @@ async function renderUsersList(){
 
 }
 
-async function getUsersList(){
-    let users = await API.GetAccounts();
-    console.log(users['data']);
-    let html = '';
-    users['data'].forEach(user => {
-        // faire une fonction utile pour savoir si admin comme ca on peut la call nimporte ou dans le code ?
-        let userType = `<i title=Administrateur class="fas fa-user-alt"></i>`; // usager normal
-        let userStatus = `<i title=Usager class="fa-regular fa-circle greenCmd"></i>`;
-        let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd" userid=${user.Id}></i>`;
-        
-        if(user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2){ 
-            userType = `<i class="fas fa-user-cog"></i>`; // admin
-        }
-        // if(user.blocked) comment on fait pour savoir user blocked?
-        
-        html += `<div class=row> 
-                    <div class=col-3></div> 
-                    <div class=col-6></div> 
-                    <div class=col-3>${userType}${userStatus}${deleteUser}</div> 
-                </div>`
-    });
 
-    return html;
-}
 
 function getFormData($form) {
     const removeTag = new RegExp("(<[a-zA-Z0-9]+>)|(</[a-zA-Z0-9]+>)", "g");
