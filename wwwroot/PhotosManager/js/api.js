@@ -1,9 +1,12 @@
 ////////////////////////////////////////////// API photos_APIs call ///////////////////////////////////////////////////////
 
+
+
 const serverHost = "http://localhost:5000";
 const photos_API = "/api/photos";
 
 class API {
+
     static initHttpState() {
         this.currentHttpError = "";
         this.currentStatus = 0;
@@ -181,6 +184,25 @@ class API {
             });
         });
     }
+
+    static grantAdmin(userId){
+        API.initHttpState();
+        return new Promise(resolve => {
+            $.ajax({
+                url: serverHost + "/accounts/changeauth/",
+                contentType: 'application/json',
+                type: 'PUT',
+                data: JSON.stringify({Id:userId, readAccess: 2, writeAccess: 2 }),
+                headers: API.getBearerAuthorizationToken(),
+                success: () => {
+                    resolve(true);
+                },
+                error: xhr => { API.setHttpErrorState(xhr); resolve(false); }
+            });
+        });
+    }
+
+
     static GetPhotosETag() {
         API.initHttpState();
         return new Promise(resolve => {

@@ -24,6 +24,27 @@ export default class AccountsController extends Controller {
                 this.HttpContext.response.unAuthorized("Unauthorized access");
         }
     }
+    changeauth(user){
+        if (user != undefined) {
+            if (Authorizations.readGranted(this.HttpContext, Authorizations.admin())){
+                let userFound = this.repository.findByField('Id', user.Id);
+                if(userFound){
+                    userFound.Authorizations = authorizations;
+                    userFound = this.repository.update(userFound.Id, userFound);
+                    if (this.repository.model.state.isValid) {
+                        this.HttpContext.response.updated(userFound);
+                    } else {
+                        this.HttpContext.response.unprocessable();
+                    }
+                }
+                else
+                    this.HttpContext.response.userNotFound();
+            }                
+            else
+                this.HttpContext.response.unAuthorized("Unauthorized access");
+        }
+
+    }
     // POST: /token body payload[{"Email": "...", "Password": "..."}]
     login(loginInfo) {
         if (loginInfo) {

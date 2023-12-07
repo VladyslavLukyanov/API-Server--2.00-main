@@ -435,6 +435,17 @@ async function renderUsersList(){
 
     $('#content').html(html);
 
+    // mettre les listeners
+
+    $('.fa-user-alt').click((event)=>{
+        let userId = $(event.currentTarget).parent().attr('userid');
+        console.log('alt',userId);
+        grantAdminCommand(userId);
+    })
+    $('.fa-user-cog').click((event)=>{
+        let userId = $(event.currentTarget).parent().attr('userid');
+        console.log('cog',userId);
+    });
 
 }
 
@@ -447,6 +458,13 @@ function getFormData($form) {
         jsonObject[control.name] = control.value.replace(removeTag, "");
     });
     return jsonObject;
+}
+
+async function grantAdminCommand(userId){
+    let pass = await API.grantAdmin(userId);
+    if(pass){
+        renderUsersList();
+    }
 }
 
 async function createProfil(profil) {
