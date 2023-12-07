@@ -198,7 +198,7 @@ const renderEditProfil = (user) => {
     $('.cancel').after(`
         <div class="cancel">
         <hr>
-            <button class="form-control btn-warning" id="deleteAccountCmd">Effacer le compte</button>
+            <button class="form-control btn-warning" idUser='${user.Id}' id="deleteAccountCmd">Effacer le compte</button>
         </div>
     `);
     $(".cancel").click(() => {
@@ -213,6 +213,15 @@ const renderEditProfil = (user) => {
         }else{
             $('#matchedPassword').removeAttr('Required');
         }
+    });
+
+    $("#deleteAccountCmd").click(async function() {
+        const id = $(this).attr('idUser');
+        
+        renderDeleteUser(id);
+
+        // await API.unsubscribeAccount(id)
+        
     });
 
     addConflictValidation(API.checkConflictURL(), 'Email', 'saveUser'); // trouver une facon de ne pas check email presentement utilisé par user
@@ -232,9 +241,11 @@ const renderEditProfil = (user) => {
     });
 }
 
+
+
+
 const renderFormConnection = (user = null, title = '') => {
     updateHeader("Connexion", 'login');
-    // $(".viewTitle").text('Connexion');
     $("#content").html(`
         <div class="content" style="text-align:center">
             <h3>${title}</h3>
@@ -272,6 +283,27 @@ const renderFormConnection = (user = null, title = '') => {
     $('#createProfilCmd').on("click", () => {
         $("#content").html(renderFormInscription());
         // $(".viewTitle").text('Inscription');
+    });
+}
+
+function renderDeleteUser(id) {
+    $('#content').html(`
+        <div class="content" style="text-align:center">
+            <h3>Supprimer le compte ? </h3>
+            <div class="form">
+                <hr>
+                <button style='background-color:red' class="form-control " id="supprimer">Oui</button>
+                <br>
+                <button class="form-control btn-info" id="annulerSuppresion">Annuler</button>
+            </div>
+        </div>
+    
+    `);
+
+    $("#supprimer").on('click', async() => {
+       if( await API.unsubscribeAccount(id) ) {
+        renderFormConnection(null);
+       }
     });
 }
 
@@ -395,6 +427,36 @@ const renderFormInscription = () => {
 
 };
 
+function blockUser () {
+    $(".block").click (async function () {
+        let idUser = $(this).attr('id');
+        let userToBlock = null;
+        
+        
+        let users = await API.GetAccounts();
+
+        if(users) {
+
+            for(const user of users['data']) {
+                if(user.Id===idUser) {
+                    user.Authorizations.readAccess = 0;
+                    user.Authorizations.writeAccess = 0;
+                    userToBlock = user;
+                    break;
+                }
+            }
+
+            if(userToBlock) {
+                res = await API.modifyUserProfil(userToBlock);
+                if(res) {
+                    console.log('changed');
+                }
+            } 
+        }
+
+    });
+}
+
 async function renderUsersList(){
     updateHeader('Gestion des usagers', 'logged');
     let users = await API.GetAccounts();
@@ -404,7 +466,7 @@ async function renderUsersList(){
     users['data'].forEach(user => {
         if(currentUser.Id != user.Id){
             let userType = `<i title=Usager class="fas fa-user-alt dodgerblueCmd"></i>`; // usager normal
-            let userStatus = `<i title=Valide class="fa-regular fa-circle greenCmd"></i>`;
+            let userStatus = `<i title=Valide class="fa-regular fa-circle greenCmd block" id='${user.Id}'></i>`;
             let deleteUser = `<i title="Effacer l'usager" class="fas fa-user-slash goldenrodCmd"></i>`;
             
             if(user.Authorizations.readAccess === 2 && user.Authorizations.writeAccess === 2){ 
@@ -427,12 +489,10 @@ async function renderUsersList(){
                             ${deleteUser}
                         </div>                     
                     </div>
-                </div>`
+                </div>`;
         }
         
-        
     });
-
     $('#content').html(html);
 
     // mettre les listeners
@@ -446,6 +506,7 @@ async function renderUsersList(){
         let userId = $(event.currentTarget).parent().attr('userid');
         console.log('cog',userId);
     });
+    blockUser();
 
 }
 
