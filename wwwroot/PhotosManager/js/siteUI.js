@@ -153,11 +153,12 @@ function connectedUserEvents(loggedUser) {
     $('#signOutCmd').click(async (e) => {
         showWaitingGif();
         if (await API.logout()) {
-            console.log('deconnexion reussie');
             renderFormConnection(null);
             
         }
     });
+
+    index();
 }
 
 function renderAbout() {
@@ -204,7 +205,6 @@ const renderEditProfil = (user) => {
     renderProfilForm(user);
     
     // let notChangedPasswordGuid = uuidv1();
-    // console.log(notChangedPasswordGuid);
     // $('#editProfilForm').append(`
     //     <input name=Password type=hidden value=${notChangedPasswordGuid}/>
     //     <input name=matchedPassword type=hidden value=${notChangedPasswordGuid}/>
@@ -220,9 +220,7 @@ const renderEditProfil = (user) => {
         renderPhotoIndex();
     });
     $("#Password").on('input',function(event){
-        console.log(event.currentTarget.value);
         if(event.currentTarget.value.trim()){
-            console.log('ecriture');
             $('#matchedPassword').attr('Required','');
         }else{
             $('#matchedPassword').removeAttr('Required');
@@ -307,13 +305,15 @@ const renderFormConnection = (user = null, title = '') => {
 
 function renderDeleteUser(id) {
     $('#content').html(`
-        <div class="content" style="text-align:center">
-            <h3>Supprimer le compte ? </h3>
+        <div class="content" style="text-align:center; margin-top:50px;">
+            <h4>Êtes-vous certain de vouloir supprimer votre compte ?</h4>
             <div class="form">
                 <hr>
-                <button style='background-color:red' class="form-control " id="supprimer">Oui</button>
+                <button style='background-color:#dc3545; color:white;' class="form-control " id="supprimer">Oui</button>
                 <br>
-                <button class="form-control btn-info" id="annulerSuppresion">Annuler</button>
+                <button class="form-control btn-info" style='color: white;
+                background-color: #6c757d;
+                border-color: #6c757d;' id="annulerSuppresion">Annuler</button>
             </div>
         </div>
     
@@ -337,13 +337,12 @@ async function renderDeleteAnotherUser(id) {
     let users = await API.GetAccounts();
     showWaitingGif();
     if(users) {
-
         let utilisateurTrouve = users['data'].find(user => user.Id === id);
-        console.log(utilisateurTrouve);
+
         $("#content").html (`
             <div class="content" style="text-align:center">
                 <h4 style="margin-top:30px">Voulez-vous vraiment effacer cet usager et toutes ses photos?</h4>
-                    <div class="UserLayout">
+                    <div class="UserLayout" style='justify-content:center;'>
                     <div class="UserAvatar" style="background-image:url('${utilisateurTrouve.Avatar}')"></div>
                     <div class="UserInfo">
                             <span class="UserName">${utilisateurTrouve.Name}</span>
@@ -351,7 +350,7 @@ async function renderDeleteAnotherUser(id) {
                         </div>
                     </div>
                 <div class="form">
-                    <button class="form-control btn-danger" id="deleteUserCmd">Effacer mon compte</button>
+                    <button class="form-control btn-danger" id="deleteUserCmd">Effacer</button>
                 </div>
                 <div class="form">
                     <button class="form-control btn-secondary" id="cancelCmd">Annuler</button>
@@ -377,7 +376,6 @@ async function renderDeleteAnotherUser(id) {
 
 const renderProfilForm = (user = null) => {
     if(user){
-        console.log(user)
         if(user.Avatar.trim() == '' || user.Avatar == 'http://localhost:5000/assetsRepository/'){ // Bizzarement, un user sans image contient http://localhost:5000/assetsRepository/ dans son user.Avatar mais juste du cote front-end , car la table json contient pourtant bien du vide
             user.Avatar = 'images/no-avatar.png';
         }
@@ -471,7 +469,6 @@ const renderFormInscription = () => {
     //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
     updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
     renderProfilForm();
-    console.log($('.form'));
 
 
 
@@ -485,9 +482,7 @@ const renderFormInscription = () => {
     $('.form').on("submit", function (event) {
         event.preventDefault();// empêcher le fureteur de soumettre une requête de soumission
 
-        console.log('create');
 
-        // console.log($("#createProfilForm"));
 
         let profil = getFormData($('.form'));
         delete profil.matchedPassword;
@@ -508,7 +503,6 @@ const renderFormInscription = () => {
 async function renderUsersList(){
     updateHeader('Gestion des usagers', 'logged');
     let users = await API.GetAccounts();
-    console.log(users['data']);
     let currentUser = await API.retrieveLoggedUser();
     let html = '';
     users['data'].forEach(user => {
@@ -551,12 +545,10 @@ async function renderUsersList(){
 
     $('.fa-user-alt').click((event)=>{
         let userId = $(event.currentTarget).parent().attr('userid');
-        console.log('alt',userId);
         grantAdminCommand(userId);
     })
     $('.fa-user-cog').click((event)=>{
         let userId = $(event.currentTarget).parent().attr('userid');
-        console.log('cog',userId);
         grantAdminCommand(userId);
     });
 
@@ -567,7 +559,6 @@ async function renderUsersList(){
 
     $(".goldenrodCmd").click(async function () {
         let id = $(this).attr('id');
-        console.log(id);
         renderDeleteAnotherUser(id);
         
     });
@@ -597,7 +588,6 @@ async function blockUsers(userId) {
     let pass = await API.block(userId);
 
     if(pass) {
-        console.log(pass);
         renderUsersList();
     }
 }
@@ -606,9 +596,7 @@ async function createProfil(profil) {
 
     profil = await API.register(profil); 
     if(profil) {
-        console.log(profil)
-        renderFormConnection(profil, `Veuillez prendre vos courriels pour récupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.`);
-        console.log(profil);
+        renderFormConnection(profil, `<span style='color:black'>Veuillez prendre vos courriels pour récupérer votre code de vérification qui vous sera demandé lors de votre prochaine connexion.</span>`);
     } else {
         console.log(API.currentHttpError);
     }
@@ -633,7 +621,6 @@ async function modifyProfil(updatedUser){
 }
 
 function serverError() {
-    console.log('server error');
 
     return `
         <div class="form">
@@ -646,7 +633,6 @@ function serverError() {
 
 function retry() {
     $("#tryAgain").click(() => {
-        console.log('retry...');
         eraseContent();
         renderFormConnection(null);
     });
@@ -743,7 +729,6 @@ const renderFormAccountValidation = (user) => {
         initFormValidation();
         handleVerificationEvent(user);
         
-        console.log('verifty form');
 
     }
 
@@ -753,6 +738,12 @@ const renderPhotoIndex = () => {
     updateHeader('Liste des photos','loggedAddPhoto');
     $('#content').html(`
         <p>Photos index... to do</p> `);
+}
+
+function index () {
+    $(".appLogo").click(() => {
+        renderPhotoIndex();
+    })
 }
 
 $(() => {

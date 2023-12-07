@@ -33,17 +33,14 @@ function timeout() {
     startCountdown();
 }
 function startCountdown() {
-    console.log('start countdown')
-    if (!initialized) initTimeout(15, sessionExpires);
+    if (!initialized) initTimeout(1000, sessionExpires);
     clearTimeout(currentTimeouID);
     $(".popup").hide();
     timeLeft = maxStallingTime;
-    console.log(timeLeft);
     if (timeLeft != infinite) {
         currentTimeouID = setInterval(() => {
             timeLeft = timeLeft - 1;
             if (timeLeft > 0) {
-                console.log(timeLeft);
                 if (timeLeft <= 10) {
                     $(".popup").show();
                     $("#popUpMessage").text("Expiration dans " + timeLeft + " secondes");
