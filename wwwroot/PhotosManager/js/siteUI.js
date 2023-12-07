@@ -155,6 +155,7 @@ function connectedUserEvents(loggedUser) {
         if (await API.logout()) {
             console.log('deconnexion reussie');
             renderFormConnection(null);
+            
         }
     });
 }
@@ -183,15 +184,17 @@ function renderAbout() {
         `);
 }
 
-async function logout(banned = false){
-    if (await API.logout()) {
+async function logout(banned = false, expires=false){
+    let message = '';
+    
+    if ( await API.logout() ) {
         if(banned) {
-            renderFormConnection(null, "banni par admin");
-    
-        } else {
-            renderFormConnection(null, "");
-    
-        }
+            message = "Vous avez été banni par l'administrateur";
+        } else if(expires) {
+            message = "Votre session est expirée, veuillez vous reconnecter";
+        } 
+        renderFormConnection(null, message);
+
     }
 }
 
@@ -252,14 +255,16 @@ const renderEditProfil = (user) => {
     });
 }
 
-
+function sessionExpires() {
+    logout(false, true);
+}
 
 
 const renderFormConnection = (user = null, title = '') => {
     updateHeader("Connexion", 'login');
     $("#content").html(`
         <div class="content" style="text-align:center">
-            <h3>${title}</h3>
+            <h4 style='color:red;'>${title}</h4>
             <form class="form" id="loginForm">
                 <input type='email'
                 name='Email'
@@ -293,8 +298,11 @@ const renderFormConnection = (user = null, title = '') => {
 
     $('#createProfilCmd').on("click", () => {
         $("#content").html(renderFormInscription());
-        // $(".viewTitle").text('Inscription');
     });
+
+    noTimeout();
+    $('.popup').hide();
+
 }
 
 function renderDeleteUser(id) {
@@ -462,7 +470,6 @@ const renderFormInscription = () => {
     noTimeout(); // ne pas limiter le temps d’inactivité
     //eraseContent(); On fait html a la place de append alors...? // effacer le conteneur #content
     updateHeader("Inscription", "createProfil"); // mettre à jour l’entête et menu
-
     renderProfilForm();
     console.log($('.form'));
 
@@ -680,8 +687,10 @@ const handleloginEvents =  () => {
             if(token.VerifyCode == 'unverified')
                 renderFormAccountValidation(token);
             
-            else
+            else {
                 renderPhotoIndex(); // si le user est verified on peut montrer les photos?...
+                timeout();
+            }
         } else { 
             handleLoginError(user, API.currentHttpError);
             handleloginEvents(); 
@@ -752,6 +761,7 @@ $(() => {
     if(user) {
         renderPhotoIndex();
         renderFormAccountValidation(user); // s'affiche seulemnt si user n'a pas encore confirmé son code email
+        timeout();
     } else {
         updateHeader('Connexion','login');
         renderFormConnection(null);

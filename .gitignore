@@ -131,3 +131,4 @@ dist
 .pnp.*
 serverVariables.ini
 jsonFiles/Tokens.json
+*.json
